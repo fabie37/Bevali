@@ -20,3 +20,10 @@
 * *0.5 hour* Inserted Timelog to track progress.
 * *0.5 hour* Set up JIRA for issue tracker when developing application.
 * *2  hours* Create question list for first meeting.
+
+### 2 Oct 2021
+
+* *1 hour* Read reading material "Blockchain and Smart Contracts" & taken notes.
+
+### 3 Oct 2021
+* *2.5 hours* Read reading material "Making Smart Contract Smarter" & taken notes.
