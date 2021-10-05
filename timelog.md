@@ -26,4 +26,11 @@
 * *1 hour* Read reading material "Blockchain and Smart Contracts" & taken notes.
 
 ### 3 Oct 2021
+
 * *2.5 hours* Read reading material "Making Smart Contract Smarter" & taken notes.
+
+## Week 2
+
+### 5 Oct 2021
+
+* *3 hours* Read reading material "Smart Contract Development Model and the Future of Blockchain Technology and taken extensive notes.
