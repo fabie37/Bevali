@@ -34,3 +34,7 @@
 ### 5 Oct 2021
 
 * *3 hours* Read reading material "Smart Contract Development Model and the Future of Blockchain Technology and taken extensive notes.
+
+### 6 Oct 2021
+
+* *3 hours* Read reading material - finalised all notes and have a decent overview of how to implement the system. Just need to refine the concepts into a structure and code it.
