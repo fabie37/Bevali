@@ -38,3 +38,11 @@
 ### 6 Oct 2021
 
 * *3 hours* Read reading material - finalised all notes and have a decent overview of how to implement the system. Just need to refine the concepts into a structure and code it.
+
+### 7 Oct 2021
+
+* *1 hour* Prepared for tomorrow's meeting by highlighting questions of interest.
+
+### 8 Oct 2021
+
+* *0.5 hour* Had the second meeting with my adviser and gave him access to the project's bitbucket. 
