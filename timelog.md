@@ -45,4 +45,10 @@
 
 ### 8 Oct 2021
 
-* *0.5 hour* Had the second meeting with my adviser and gave him access to the project's bitbucket. 
+* *0.5 hour* Had the second meeting with my adviser and gave him access to the project's bitbucket.
+
+## Week 3
+
+### 13 Oct 2021
+
+* *0.5 hour* Downloaded Template for dissertation and created overleaf to start writing. 
