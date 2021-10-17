@@ -52,3 +52,9 @@
 ### 13 Oct 2021
 
 * *0.5 hour* Downloaded Template for dissertation and created overleaf to start writing. 
+
+### 15 oct 2021
+
+* *2 hours* Started inital writting for dissertation.
+* *1 hour*  Setup issue timeline and outlined structure for project in python. 
+* *0.5 hour* Created meeting report for adviser.
