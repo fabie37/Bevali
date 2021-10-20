@@ -3,9 +3,9 @@ import json
 
 
 class Block:
-    def __init__(self):
-        self.blockNumber = 0
-        self.previousHash = 0
+    def __init__(self, blockNumber=0, previousHash=0):
+        self.blockNumber = blockNumber
+        self.previousHash = previousHash
         self.nonce = 0
         self.transactions = []
 
