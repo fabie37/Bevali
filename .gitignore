@@ -8,6 +8,7 @@ node_modules/
 dist/
 env/
 .vscode/
+vscode/
 
 # Compiled Java class files
 *.class
