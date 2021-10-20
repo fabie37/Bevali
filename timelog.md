@@ -63,3 +63,9 @@
 
 * *2 hours* Researched Python based project structures and correct practices for setting up the project
 * *0.5 hours* Commited basic python structure for the project.
+
+## Week 4
+
+### 20 Oct 2021
+
+* *2 hours* Started block class and implemented make file for easy dependancy installation.
