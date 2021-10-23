@@ -69,3 +69,7 @@
 ### 20 Oct 2021
 
 * *2 hours* Started block class and implemented make file for easy dependancy installation.
+
+### 23 Oct 2021
+
+* *2 hours* Started making unit test for block class and researched good practices for testing in python.
