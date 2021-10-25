@@ -73,3 +73,10 @@
 ### 23 Oct 2021
 
 * *2 hours* Started making unit test for block class and researched good practices for testing in python.
+
+## Week 5
+
+### 25 Oct 2021
+
+* *0.5 hours* Created CI/CD pipeline for testing when pushing to repository.
+* *0.5 hours* Created blockchain class to manage blockchain state.
