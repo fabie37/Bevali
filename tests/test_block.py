@@ -1,7 +1,6 @@
 """
     This file contains tests for the class 'Block' contained within the 'Blockchain' Module
 """
-import pytest
 from blockchain import Block
 
 
@@ -16,3 +15,4 @@ def test_genisus_block_hash():
 def test_transcation_is_added():
     testBlock = Block()
     testBlock.add_transaction("")
+    assert len(testBlock.transactions) == 1

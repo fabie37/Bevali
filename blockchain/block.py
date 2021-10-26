@@ -3,6 +3,8 @@ import json
 
 
 class Block:
+    """ Class to encapsulate the blocks within the blockchain. """
+
     def __init__(self, blockNumber=0, previousHash=0):
         self.blockNumber = blockNumber
         self.previousHash = previousHash
@@ -10,9 +12,12 @@ class Block:
         self.transactions = []
 
     def add_transaction(self, transcation):
+        """ Adds a transaction to the block """
         self.transactions.append(transcation)
 
     def generate_hash(self):
+        """ Generates a hash of the block containing: [blockNumber, previousHash, nonce, transactions] """
+
         blockObject = {
             "blockNumber": self.blockNumber,
             "previousHash": self.previousHash,

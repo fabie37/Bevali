@@ -80,3 +80,4 @@
 
 * *0.5 hours* Created CI/CD pipeline for testing when pushing to repository.
 * *0.5 hours* Created blockchain class to manage blockchain state.
+
