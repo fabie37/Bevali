@@ -81,3 +81,7 @@
 * *0.5 hours* Created CI/CD pipeline for testing when pushing to repository.
 * *0.5 hours* Created blockchain class to manage blockchain state.
 
+### 26 Oct 2021
+
+* *2 hours* Updated blockchain class to check for chain integrity. Unit tests were also provided.
+* *0.5 hours* Debugged issues with pipeline and failed builds.
