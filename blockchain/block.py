@@ -1,5 +1,6 @@
 import hashlib
 import json
+import time
 
 
 class Block:
@@ -10,6 +11,7 @@ class Block:
         self.previousHash = previousHash
         self.nonce = 0
         self.transactions = []
+        self.timestamp = time.time()
 
     def add_transaction(self, transcation):
         """ Adds a transaction to the block """
@@ -22,7 +24,8 @@ class Block:
             "blockNumber": self.blockNumber,
             "previousHash": self.previousHash,
             "nonce": self.nonce,
-            "transactions": self.transactions
+            "transactions": self.transactions,
+            "timestamp": self.timestamp
         }
         blockJson = json.dumps(blockObject)
         hash = hashlib.sha256()
