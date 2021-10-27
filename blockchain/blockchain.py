@@ -49,7 +49,7 @@ class Blockchain:
         lastBlock = self.chain[-1]
         lastBlockHash = lastBlock.generate_hash()
 
-        newBlock = Block(blockNumber=lastBlock.blockNumber+1,
+        newBlock = Block(blockNumber=lastBlock.blockNumber + 1,
                          previousHash=lastBlockHash, data=data)
         timeInterval = time()
 
