@@ -85,3 +85,8 @@
 
 * *2 hours* Updated blockchain class to check for chain integrity. Unit tests were also provided.
 * *0.5 hours* Debugged issues with pipeline and failed builds.
+
+### 27 Oct 2021
+* *3 hours* Updated blockchain class to now have a proof of work algorithm.
+* *1 hours* Updated pipeline to have a runner on local server.
+* *1 hours* Started basic research on sockets in python.
