@@ -6,25 +6,25 @@ import time
 class Block:
     """ Class to encapsulate the blocks within the blockchain. """
 
-    def __init__(self, blockNumber=0, previousHash=0, transcations=[], nonce=0, timestamp=time.time()):
+    def __init__(self, blockNumber=0, previousHash=0, data=[], nonce=0, timestamp=time.time()):
         self.blockNumber = blockNumber
         self.previousHash = previousHash
         self.nonce = nonce
-        self.transactions = transcations
+        self.data = []
         self.timestamp = timestamp
 
-    def add_transaction(self, transcation):
-        """ Adds a transaction to the block """
-        self.transactions.append(transcation)
+    def add_data(self, data):
+        """ Adds a data element to the block """
+        self.data.append(data)
 
     def generate_hash(self):
-        """ Generates a hash of the block containing: [blockNumber, previousHash, nonce, transactions] """
+        """ Generates a hash of the block containing: [blockNumber, previousHash, nonce, data, timestampe] """
 
         blockObject = {
             "blockNumber": self.blockNumber,
             "previousHash": self.previousHash,
             "nonce": self.nonce,
-            "transactions": self.transactions,
+            "data": self.data,
             "timestamp": self.timestamp
         }
         blockJson = json.dumps(blockObject)
