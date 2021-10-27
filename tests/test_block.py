@@ -6,7 +6,8 @@ from blockchain import Block
 
 def test_genisus_block_hash():
     testBlock = Block()
-    genisusBlock = Block(blockNumber=0, previousHash=0)
+    genisusBlock = Block(blockNumber=0, previousHash=0,
+                         timestampe=testBlock.timestamp)
     testHash = testBlock.generate_hash()
     genisusHash = genisusBlock.generate_hash()
     assert testHash == genisusHash

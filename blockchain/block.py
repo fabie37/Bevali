@@ -6,12 +6,12 @@ import time
 class Block:
     """ Class to encapsulate the blocks within the blockchain. """
 
-    def __init__(self, blockNumber=0, previousHash=0):
+    def __init__(self, blockNumber=0, previousHash=0, transcations=[], nonce=0, timestamp=time.time()):
         self.blockNumber = blockNumber
         self.previousHash = previousHash
-        self.nonce = 0
-        self.transactions = []
-        self.timestamp = time.time()
+        self.nonce = nonce
+        self.transactions = transcations
+        self.timestamp = timestamp
 
     def add_transaction(self, transcation):
         """ Adds a transaction to the block """
