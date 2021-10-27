@@ -13,7 +13,7 @@ def test_genisus_block_hash():
     assert testHash == genisusHash
 
 
-def test_transcation_is_added():
+def test_data_is_added():
     testBlock = Block()
-    testBlock.add_transaction("")
-    assert len(testBlock.transactions) == 1
+    testBlock.add_data("")
+    assert len(testBlock.data) == 1
