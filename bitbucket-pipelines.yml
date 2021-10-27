@@ -9,6 +9,7 @@ pipelines:
   default:
     - parallel:
       - step:
+          runs-on: self.hosted
           name: Test
           caches:
             - pip
@@ -17,6 +18,7 @@ pipelines:
             - pip install pytest
             - pytest -v tests/* --junitxml=test-reports/report.xml
       - step:
+          runs-on: self.hosted
           name: Lint code
           script:
             # Enforce style consistency across Python projects https://flake8.pycqa.org/en/latest/manpage.html
