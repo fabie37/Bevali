@@ -1,11 +1,14 @@
 from blockchain import Block
+from time import time
 
 
 class Blockchain:
     """ Class used to contain the blockchain and associtated mining and integrity checks"""
 
-    def __init__(self):
+    def __init__(self, target='0', miningWindow=60):
         self.chain = []
+        self.target = target
+        self.miningWindow = 60  # In seconds
 
     def add_block(self, block):
         """ Adds a new block to the chain """
@@ -38,3 +41,22 @@ class Blockchain:
             previousBlock = block
 
         return True
+
+    def mine_block(self, data):
+        """ Method to do PoW algorithm and return a valid block """
+
+        target = self.target
+        lastBlock = self.chain[-1]
+        lastBlockHash = lastBlock.generate_hash()
+
+        newBlock = Block(blockNumber=lastBlock.blockNumber+1,
+                         previousHash=lastBlockHash, data=data)
+        timeInterval = time()
+
+        while not newBlock.generate_hash().startswith(target):
+            newBlock.nonce += 1
+            if (time() - timeInterval) > self.miningWindow:
+                timeInterval = time()
+                newBlock.timestamp = timeInterval
+
+        return newBlock
