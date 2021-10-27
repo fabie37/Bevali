@@ -10,7 +10,7 @@ class Block:
         self.blockNumber = blockNumber
         self.previousHash = previousHash
         self.nonce = nonce
-        self.data = []
+        self.data = data
         self.timestamp = timestamp
 
     def add_data(self, data):

@@ -43,7 +43,7 @@ def test_blockchain_proof_of_work():
     secondBlock = Block(2, firstBlock.generate_hash())
     thirdBlock = Block(3, secondBlock.generate_hash())
 
-    blockchain = Blockchain()
+    blockchain = Blockchain(target='0')
     blockchain.add_block(genisusBlock)
     blockchain.add_block(firstBlock)
     blockchain.add_block(secondBlock)
