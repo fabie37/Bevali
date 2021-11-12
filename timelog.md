@@ -63,3 +63,11 @@
 
 * *2 hours* Researched Python based project structures and correct practices for setting up the project
 * *0.5 hours* Commited basic python structure for the project.
+
+## Week 6
+
+## Week 7
+
+### 11 Nov 2021
+
+* *3 hours* Implemented networking methods for client and server

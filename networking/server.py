@@ -1,9 +1,12 @@
 import socket
+import select
 import pickle
 import threading
+import logging
 
-from constants import HEADERSIZE
-from constants import ServerStatus
+from config import HEADERSIZE
+from config import ServerStatus
+from config import serverLogger
 
 
 class Server:
@@ -17,73 +20,141 @@ class Server:
         self.rxLock = threading.Lock()
         self.rxSignal = threading.Condition(self.rxLock)
         self.rxbuffer = []
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.thread = threading.Thread(
-            target=self.run, name=f"Thread-{hostname}")
-        self.loggerThread = threading.Thread(target=self.logger)
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.rxThread = threading.Thread(
+            target=self.run, name=f"RX Thread")
+        self.loggerThread = threading.Thread(
+            target=self.logger, name=f"Logger Thread")
+        self.socketList = [self.serverSocket]
+        self.activeThreads = 0
+        self.activeThreadsLock = threading.Lock()
+        self.closeSignal = threading.Condition(self.activeThreadsLock)
 
     def start(self):
         """ Starts all threads associated with Server Class """
-        self.thread.start()
+        self.rxThread.start()
         self.loggerThread.start()
 
     def stop(self):
         """ Stops all thread associated with Thread Class """
-        self.statusLock.acquire()
-        self.status = ServerStatus.STOPPED
-        self.statusLock.release()
+        with self.statusLock:
+            self.status = ServerStatus.CLOSING
+            with self.rxSignal:
+                self.rxSignal.notify_all()
+
+        with self.closeSignal:
+            while self.activeThreads != 0:
+                self.closeSignal.wait()
+        return
+
+    def incrementActiveThreads(self):
+        """ Increments number of active threads """
+        with self.activeThreadsLock:
+            self.activeThreads += 1
+
+    def decrementActiveThreads(self):
+        """ Decrements number of active threads and notifies any thread waiting on closeSignal """
+        with self.closeSignal:
+            self.activeThreads -= 1
+            self.closeSignal.notify()
+
+    def shouldThreadClose(self, threadname):
+        """ Method to check if thread should close. """
+        if self.status == ServerStatus.CLOSING:
+            serverLogger.info(f"{threadname} is closing...")
+            self.decrementActiveThreads()
+            return True
+        else:
+            return False
 
     def logger(self):
-        while True:
-            if self.status == ServerStatus.STOPPED:
-                print("Logger Thread Closing")
-                return
+        """ Logs data in RX Buffer """
+        try:
+            self.incrementActiveThreads()
+            while True:
+                if (self.shouldThreadClose("Logger Thread")):
+                    return
 
-            while len(self.rxbuffer) == 0:
-                self.rxSignal.acquire()
-                self.rxSignal.wait()
+                with self.rxSignal:
+                    self.rxSignal.wait()
+                    for item in self.rxbuffer:
+                        print(f"{item}\n")
+                    self.rxbuffer = []
+        except:
+            serverLogger.error("Logger thread closed unexpectedly!")
+            self.decrementActiveThreads()
 
-            for item in self.rxbuffer:
-                print(item)
-            self.rxbuffer = []
-            self.rxSignal.release()
+    def pushRxBuffer(self, rx_data):
+        """ Pushes data into rx buffer """
+        with self.rxSignal:
+            self.rxbuffer.append(rx_data)
+            self.rxSignal.notify()
+
+    @staticmethod
+    def recv(peer_socket):
+        """ Recieve data from a peer socket """
+        try:
+            message_header = peer_socket.recv(HEADERSIZE)
+
+            if not len(message_header):
+                return False
+
+            message_length = int(message_header.decode("utf-8").strip())
+            client_msg = peer_socket.recv(message_length)
+            rx_data = pickle.loads(client_msg)
+            return {"header": message_header, "data": rx_data}
+        except:
+            serverLogger.error("Failed to read from peer socket!")
+            return False
 
     def run(self):
         """ Run: Starts the server listening for connections. """
-        self.socket.bind((self.hostname, self.port))
-        self.socket.listen(5)
-
-        while True:
-            # If asked to stop, stop thread
-            if self.status == ServerStatus.STOPPED:
-                print("Run Thread Closing")
-                return
-
-            # Create a new client socket
-            clientsocket, address = self.socket.accept()
-            print(f"Connection from {address} has been establised!")
-
-            full_msg = b''
-            new_msg = True
+        try:
+            self.incrementActiveThreads()
+            self.serverSocket.bind((self.hostname, self.port))
+            self.serverSocket.listen()
 
             while True:
-                msg = clientsocket.recv(2*HEADERSIZE)
-                if new_msg:
-                    print(f"new message length: {msg[:HEADERSIZE]}")
-                    msglen = int(msg[:HEADERSIZE])
-                    new_msg = False
+                # If asked to stop, stop thread
+                if (self.shouldThreadClose("RX Thread")):
+                    return
 
-                full_msg += msg
+                # Wake when something has happened to any of the sockets.
+                read_sockets, _, exception_sockets = select.select(
+                    self.socketList, [], self.socketList, 10)
 
-                if len(full_msg) - HEADERSIZE == msglen:
-                    print("Full Message Recieved")
-                    rx_data = pickle.loads(full_msg[HEADERSIZE:])
-                    self.rxLock.acquire()
-                    self.rxbuffer.append(rx_data)
-                    self.rxSignal.notify()
-                    self.rxLock.release()
+                for triggered_socket in read_sockets:
+                    # if a new peer connects to server's socket, add to list and store the incomming message.
+                    if triggered_socket == self.serverSocket:
+                        peer_socket, peer_address = self.serverSocket.accept()
+                        serverLogger.info(
+                            f"Connection from {peer_address} has been establised!")
 
-                    break
+                        msg = self.recv(peer_socket)
+                        if msg == False:
+                            continue
+                        self.socketList.append(peer_socket)
+                        msg["address"] = peer_address
+                        self.pushRxBuffer(msg)
+                    # Else Already connected peer sent us a new message
+                    else:
+                        msg = self.recv(triggered_socket)
+                        if msg is False:
+                            serverLogger.info(
+                                f"Closed connection from {triggered_socket.getsockname()}")
+                            self.socketList.remove(triggered_socket)
+                            continue
+                        msg["address"] = triggered_socket.getsocketname()
+                        self.pushRxBuffer(msg)
+                        serverLogger.info(
+                            f"Recevied message from {msg['address']}")
+
+                # If any sockets throw an exception, remove them as a peer
+                for bad_socket in exception_sockets:
+                    self.socketList.remove(bad_socket)
+        except Exception as err:
+            serverLogger.exception("Exception raised in RX thread.")
+            self.decrementActiveThreads()
 
 
 server = Server(socket.gethostname(), 1234)

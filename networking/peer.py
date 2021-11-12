@@ -1,7 +1,10 @@
 import socket
 import pickle
+import logging
+from typing import Type
 
-from constants import HEADERSIZE
+from config import HEADERSIZE
+from config import peerLogger
 
 
 class Peer:
@@ -15,11 +18,21 @@ class Peer:
 
     def send(self, data):
         """Sends data to a specific peer"""
-        jsonData = pickle.dumps(data)
-        msg = bytes(f'{len(jsonData):<{self.headersize}}', 'utf-8') + jsonData
-        self.socket.connect((self.ip, self.port))
-        self.socket.send(msg)
+        try:
+            jsonData = pickle.dumps(data)
+            msg = bytes(f'{len(jsonData):<{self.headersize}}',
+                        'utf-8') + jsonData
+            self.socket.connect((self.ip, self.port))
+            self.socket.send(msg)
+            self.socket.close()
+            return True
+        except TypeError:
+            peerLogger.exception("Cannot pickle message!")
+            raise TypeError
+        except Exception:
+            peerLogger.exception("Cannot connect to peer!")
+            raise ConnectionError
 
 
 peer = Peer(socket.gethostname(), 1234)
-peer.send({"BlockSize": 3000})
+peer.send({"1": 1})
