@@ -6,6 +6,8 @@ from typing import Type
 from config import HEADERSIZE
 from config import peerLogger
 
+from server import Server
+
 
 class Peer:
     """ Class to encapsulate sending data to peers"""
@@ -19,9 +21,9 @@ class Peer:
     def send(self, data):
         """Sends data to a specific peer"""
         try:
-            jsonData = pickle.dumps(data)
-            msg = bytes(f'{len(jsonData):<{self.headersize}}',
-                        'utf-8') + jsonData
+            pickleData = pickle.dumps(data)
+            msg = bytes(f'{len(pickleData):<{self.headersize}}',
+                        'utf-8') + pickleData
             self.socket.connect((self.ip, self.port))
             self.socket.send(msg)
             self.socket.close()
@@ -34,5 +36,5 @@ class Peer:
             raise ConnectionError
 
 
-peer = Peer(socket.gethostname(), 1234)
-peer.send({"1": 1})
+# peer = Peer(socket.gethostname(), 1234)
+# peer.send({"1": 1})
