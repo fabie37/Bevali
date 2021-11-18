@@ -3,10 +3,8 @@ import pickle
 import logging
 from typing import Type
 
-from config import HEADERSIZE
-from config import peerLogger
-
-from server import Server
+from networking import HEADERSIZE
+from networking import peerLogger
 
 
 class Peer:
@@ -26,7 +24,6 @@ class Peer:
                         'utf-8') + pickleData
             self.socket.connect((self.ip, self.port))
             self.socket.send(msg)
-            self.socket.close()
             return True
         except TypeError:
             peerLogger.exception("Cannot pickle message!")
@@ -36,5 +33,15 @@ class Peer:
             raise ConnectionError
 
 
-# peer = Peer(socket.gethostname(), 1234)
-# peer.send({"1": 1})
+# peer = Peer("127.0.0.1", 1234)
+# peer.send("Give mme something?")
+# inputsome = 0
+# while inputsome != "stop":
+#     inputsome = input("Type stop to stop")
+#     if inputsome == "stop":
+#         exit()
+#     msg_len = peer.socket.recv(HEADERSIZE)
+#     msg = peer.socket.recv(int(msg_len.decode("utf-8").strip()))
+#     print(pickle.loads(msg))
+#     peer.socket.send(HEADERSIZE)
+#     peer.socket.send("hello world".encode("utf-8"))

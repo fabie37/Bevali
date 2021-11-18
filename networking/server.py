@@ -2,18 +2,19 @@ import socket
 import select
 import pickle
 import threading
-from config import HEADERSIZE
-from config import ServerStatus
-from config import serverLogger
+from networking import HEADERSIZE
+from networking import ServerStatus
+from networking import serverLogger
 from time import sleep
 
 
 class Server:
     """ Class to encapsulate handling """
 
-    def __init__(self, hostname, port):
+    def __init__(self, hostname, port, id=None):
 
         # Server Configuration Settings
+        self.id = id
         self.hostname = hostname
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,7 +59,7 @@ class Server:
             self.status = ServerStatus.INIT
         self.rxThread.start()
         self.txThread.start()
-        self.loggerThread.start()
+        # self.loggerThread.start()
         with self.statusLock:
             self.status = ServerStatus.RUNNING
 
@@ -115,7 +116,7 @@ class Server:
                 with self.rxSignal:
                     self.rxSignal.wait()
                     for item in self.rxbuffer:
-                        print(f"{item}\n")
+                        print(f"Server {self.id} got {item}\n")
                     self.rxbuffer = []
         except:
             serverLogger.error("Logger thread closed unexpectedly!")
@@ -126,6 +127,11 @@ class Server:
         with self.rxSignal:
             self.rxbuffer.append(rx_data)
             self.rxSignal.notify()
+
+    def clearRxBuffer(self):
+        """ Clears data in rxBuffer """
+        with self.rxLock:
+            self.rxbuffer = []
 
     @staticmethod
     def recv(peer_socket):
@@ -170,7 +176,6 @@ class Server:
             self.incrementActiveThreads()
 
             while True:
-
                 # If asked to close server, close this thread
                 if (self.shouldThreadClose("TX Thread")):
                     return
@@ -195,11 +200,14 @@ class Server:
                                         msg["data"])
                                 else:
                                     # Else directly send data to peer
-                                    self.clientSocket = socket.socket(
+                                    sock = socket.socket(
                                         socket.AF_INET, socket.SOCK_STREAM)
-                                    self.clientSocket.connect(msg["address"])
-                                    self.clientSocket.send(msg["data"])
-                                    self.clientSocket.close()
+                                    sock.setsockopt(
+                                        socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                                    sock.connect(msg["address"])
+                                    sock.send(msg["data"])
+                                    self.socketList.append(sock)
+                                    self.peerList[msg["address"]] = sock
                             except Exception:
                                 serverLogger.exception(
                                     "Couldn't send to message to peer!")
@@ -208,7 +216,8 @@ class Server:
                             # Else, if no peer selected in msg, broadcast to everyone.
                             for peer in self.socketList:
                                 try:
-                                    peer.send(msg)
+                                    if peer != self.serverSocket:
+                                        peer.send(msg)
                                 except Exception:
                                     serverLogger.exception(
                                         "Couldn't broadcast message to a peer!")
@@ -234,7 +243,7 @@ class Server:
 
                 # Wake when something has happened to any of the sockets.
                 read_sockets, _, exception_sockets = select.select(
-                    self.socketList, [], self.socketList, 10)
+                    self.socketList, [], self.socketList, 0.5)
 
                 for triggered_socket in read_sockets:
                     # if a new peer connects to server's socket, add to list and store the incomming message.
@@ -258,10 +267,9 @@ class Server:
                         if msg is False:
                             serverLogger.info(
                                 f"Closed connection from {triggered_socket.getpeername()}")
-                            self.peerLock.acquire()
-                            self.socketList.remove(triggered_socket)
-                            del self.peerList[triggered_socket.getpeername()]
-                            self.peerLock.release()
+                            with self.peerLock:
+                                self.socketList.remove(triggered_socket)
+                                del self.peerList[triggered_socket.getpeername()]
                             continue
                         msg["address"] = triggered_socket.getpeername()
                         self.pushRxBuffer(msg)
@@ -270,30 +278,13 @@ class Server:
 
                 # If any sockets throw an exception, remove them as a peer
                 for bad_socket in exception_sockets:
-                    self.peerLock.acquire()
-                    self.socketList.remove(bad_socket)
-                    del self.peerList[bad_socket.getpeername()]
-                    self.peerLock.release()
+                    with self.peerLock:
+                        self.socketList.remove(bad_socket)
+                        del self.peerList[bad_socket.getpeername()]
+
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")
             self.decrementActiveThreads()
             self.stop()
             with self.statusLock:
                 self.status = ServerStatus.ERROR
-
-
-server = Server("127.0.0.1", 1234)
-server.start()
-
-p2p = Server("127.0.0.1", 1235)
-p2p.start()
-
-for i in range(0, 100):
-    p2p.send("hello world!", "127.0.0.1", 1234)
-    sleep(0.1)
-    server.send("how you been?", "127.0.0.1", 1235)
-
-some_random_input = input("Press Enter to stop threads")
-server.stop()
-p2p.stop()
-some_random_input = input("Check threads")
