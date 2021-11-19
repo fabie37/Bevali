@@ -71,3 +71,21 @@
 ### 11 Nov 2021
 
 * *3 hours* Implemented networking methods for client and server
+
+### 13 Nov 2021
+
+* *3 hours* Debugging networking methods for P2P server
+
+### 14 Nov 2021
+
+* *1 hours* Debugging networking methods for P2P server
+
+## Week 8
+
+### 15 Nov 2021
+
+* *1 hours* Implemented Tests for P2P server
+
+### 18 Nov 2021
+
+* *7 hours* Refactoring P2P Server so Peer class can be used to connec

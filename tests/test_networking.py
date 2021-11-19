@@ -21,9 +21,9 @@ def x_msg_sent_to_another_peer(x):
     peer2.start()
     for i in range(x):
         peer1.send(f"Test Message {i}", peer2.hostname, peer2.port)
-    with peer2.rxSignal:
+    with peer2.threadManager.getThreadSignal("RX Thread"):
         while len(peer2.rxbuffer) < x:
-            peer2.rxSignal.wait()
+            peer2.threadManager.getThreadSignal("RX Thread").wait()
     msgs = peer2.rxbuffer
     peer1.stop()
     peer2.stop()
@@ -61,9 +61,9 @@ def x_msg_to_broadcast_another_peer(x):
     sleep(1)
     for i in range(x):
         peer1.send(f"Test Message {i}")
-    with peer2.rxSignal:
+    with peer2.threadManager.getThreadSignal("RX Thread"):
         while len(peer2.rxbuffer) < x:
-            peer2.rxSignal.wait()
+            peer2.threadManager.getThreadSignal("RX Thread").wait()
     msgs = peer2.rxbuffer
     peer1.stop()
     peer2.stop()

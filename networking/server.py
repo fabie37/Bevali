@@ -1,10 +1,14 @@
 import socket
 import select
 import pickle
-import threading
 from networking import HEADERSIZE
 from networking import ServerStatus
 from networking import serverLogger
+from multithreading import ThreadManager
+from multithreading import ManagedThread
+from multithreading import ThreadStatus
+from threading import Lock
+from threading import Condition
 from time import sleep
 
 
@@ -19,62 +23,40 @@ class Server:
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Define Peers in sever
-        self.peerLock = threading.Lock()
+        self.peerLock = Lock()
         self.socketList = [self.serverSocket]
         self.peerList = {}
 
+        # Define Thread Manager
+        self.threadManager = ThreadManager()
+
         # Status of server
-        self.statusLock = threading.Lock()
         self.status = ServerStatus.INIT
 
         # TX Buffer handler
-        self.txLock = threading.Lock()
-        self.txSignal = threading.Condition(self.txLock)
         self.txbuffer = []
-        self.txThread = threading.Thread(
+        txThread = ManagedThread(
             target=self.txThread, name=f"TX Thread")
+        self.threadManager.addThread(txThread)
 
         # RX Buffer handler
-        self.rxLock = threading.Lock()
-        self.rxSignal = threading.Condition(self.rxLock)
         self.rxbuffer = []
-        self.rxThread = threading.Thread(
+        rxThread = ManagedThread(
             target=self.rxThread, name=f"RX Thread")
-
-        # Thread Management
-        self.activeThreads = 0
-        self.activeThreadsLock = threading.Lock()
-        self.closeSignal = threading.Condition(self.activeThreadsLock)
-
-        # Buffer Logger
-        self.loggerThread = threading.Thread(
-            target=self.logger, name=f"Logger Thread")
+        self.threadManager.addThread(rxThread)
 
     def start(self):
         """ Starts all threads associated with Server Class """
-        with self.statusLock:
-            self.status = ServerStatus.INIT
-        self.rxThread.start()
-        self.txThread.start()
-        # self.loggerThread.start()
-        with self.statusLock:
-            self.status = ServerStatus.RUNNING
+        self.status = ServerStatus.INIT
+        self.threadManager.startThreads()
+        self.status = ServerStatus.RUNNING
 
     def stop(self):
         """ Stops all thread associated with Thread Class """
-        with self.statusLock:
-            self.status = ServerStatus.CLOSING
-            with self.rxSignal:
-                self.rxSignal.notify_all()
-            with self.txSignal:
-                self.txSignal.notify_all()
-
-        with self.closeSignal:
-            while self.activeThreads != 0:
-                self.closeSignal.wait()
+        self.status = ServerStatus.CLOSING
+        self.threadManager.stopThreads()
 
         for sock in self.socketList:
             sock.close()
@@ -82,56 +64,50 @@ class Server:
         self.peerList = {}
         self.txbuffer = []
         self.rxbuffer = []
-        self.activeThreads = 0
+
         return
 
-    def incrementActiveThreads(self):
-        """ Increments number of active threads """
-        with self.activeThreadsLock:
-            self.activeThreads += 1
-
-    def decrementActiveThreads(self):
-        """ Decrements number of active threads and notifies any thread waiting on closeSignal """
-        with self.closeSignal:
-            self.activeThreads -= 1
-            self.closeSignal.notify()
-
-    def shouldThreadClose(self, threadname):
-        """ Method to check if thread should close. """
-        if self.status == ServerStatus.CLOSING:
-            serverLogger.info(f"{threadname} is closing...")
-            self.decrementActiveThreads()
+    def pushTxBuffer(self, tx_data):
+        """ Pushes data into tx buffer """
+        try:
+            with self.threadManager.getThreadSignal("TX Thread"):
+                self.txbuffer.append(tx_data)
+                self.threadManager.getThreadSignal("TX Thread").notify()
             return True
-        else:
+        except:
+            serverLogger.error("Failed to push to TX Buffer")
             return False
 
-    def logger(self):
-        """ Logs data in RX Buffer """
+    def clearTxBuffer(self):
+        """ Clears data in rxBuffer """
         try:
-            self.incrementActiveThreads()
-            while True:
-                if (self.shouldThreadClose("Logger Thread")):
-                    return
-
-                with self.rxSignal:
-                    self.rxSignal.wait()
-                    for item in self.rxbuffer:
-                        print(f"Server {self.id} got {item}\n")
-                    self.rxbuffer = []
+            with self.threadManager.getThreadLock("TX Thread"):
+                self.txbuffer = []
+            return True
         except:
-            serverLogger.error("Logger thread closed unexpectedly!")
-            self.decrementActiveThreads()
+            serverLogger.error("Failed to clear TX Buffer")
+            return False
 
     def pushRxBuffer(self, rx_data):
         """ Pushes data into rx buffer """
-        with self.rxSignal:
-            self.rxbuffer.append(rx_data)
-            self.rxSignal.notify()
+        try:
+            with self.threadManager.getThreadSignal("RX Thread"):
+                self.rxbuffer.append(rx_data)
+                self.threadManager.getThreadSignal("RX Thread").notify()
+            return True
+        except:
+            serverLogger.error("Failed to push to RX Buffer")
+            return False
 
     def clearRxBuffer(self):
         """ Clears data in rxBuffer """
-        with self.rxLock:
-            self.rxbuffer = []
+        try:
+            with self.threadManager.getThreadLock("RX Thread"):
+                self.rxbuffer = []
+            return True
+        except:
+            serverLogger.error("Failed to clear RX Buffer")
+            return False
 
     @staticmethod
     def recv(peer_socket):
@@ -162,29 +138,25 @@ class Server:
                 address = (ip, port)
                 msg = {"address": address, "data": msg}
 
-            with self.txSignal:
+            with self.threadManager.getThreadLock("TX Thread"):
                 self.txbuffer.append(msg)
-                self.txSignal.notify()
+                self.threadManager.getThreadSignal("TX Thread").notify()
             return True
         except Exception:
             serverLogger.exception("Cannot send data!")
             raise False
 
-    def txThread(self):
+    def txThread(self, _thread):
         """ txThread: Thread that sends data when asked to """
         try:
-            self.incrementActiveThreads()
-
-            while True:
-                # If asked to close server, close this thread
-                if (self.shouldThreadClose("TX Thread")):
-                    return
+            # Continue Loop until thread is signaled to stop
+            while _thread["status"] != ThreadStatus.STOPPING:
 
                 # Wait for a signal to transmit data
                 msgs = []
-                with self.txSignal:
-                    while len(self.txbuffer) == 0 and self.status != ServerStatus.CLOSING:
-                        self.txSignal.wait()
+                with _thread["signal"]:
+                    while len(self.txbuffer) == 0 and _thread["status"] != ThreadStatus.STOPPING:
+                        _thread["signal"].wait()
                     msgs = self.txbuffer
                     self.txbuffer = []
 
@@ -224,23 +196,16 @@ class Server:
                                     pass
         except Exception:
             serverLogger.exception("Exception raised in TX thread.")
-            self.decrementActiveThreads()
-            self.stop()
             with self.statusLock:
                 self.status = ServerStatus.ERROR
 
-    def rxThread(self):
+    def rxThread(self, _thread):
         """ rxThread: Thread that listens for connections and data. """
         try:
-            self.incrementActiveThreads()
             self.serverSocket.bind((self.hostname, self.port))
             self.serverSocket.listen()
 
-            while True:
-                # If asked to stop, stop thread
-                if (self.shouldThreadClose("RX Thread")):
-                    return
-
+            while _thread["status"] != ThreadStatus.STOPPING:
                 # Wake when something has happened to any of the sockets.
                 read_sockets, _, exception_sockets = select.select(
                     self.socketList, [], self.socketList, 0.5)
@@ -284,7 +249,5 @@ class Server:
 
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")
-            self.decrementActiveThreads()
-            self.stop()
             with self.statusLock:
                 self.status = ServerStatus.ERROR
