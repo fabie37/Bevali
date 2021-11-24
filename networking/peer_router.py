@@ -12,7 +12,7 @@ from threading import Condition
 from time import sleep
 
 
-class Server:
+class PeerRouter:
     """ Class to encapsulate handling """
 
     def __init__(self, hostname, port, id=None):

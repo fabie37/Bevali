@@ -3,7 +3,7 @@
 """
 from time import sleep
 from math import log
-from networking import Server
+from networking import PeerRouter
 
 LOCAL_HOST = "127.0.0.1"
 PORT_START = 1200
@@ -15,8 +15,8 @@ test_data = [
 
 
 def x_msg_sent_to_another_peer(x):
-    peer1 = Server(LOCAL_HOST, PORT_START+0)
-    peer2 = Server(LOCAL_HOST, PORT_START+1)
+    peer1 = PeerRouter(LOCAL_HOST, PORT_START+0)
+    peer2 = PeerRouter(LOCAL_HOST, PORT_START+1)
     peer1.start()
     peer2.start()
     for i in range(x):
@@ -53,8 +53,8 @@ def test_100_msg_sent_to_another_peer():
 
 
 def x_msg_to_broadcast_another_peer(x):
-    peer1 = Server(LOCAL_HOST, PORT_START+0)
-    peer2 = Server(LOCAL_HOST, PORT_START+1)
+    peer1 = PeerRouter(LOCAL_HOST, PORT_START+0)
+    peer2 = PeerRouter(LOCAL_HOST, PORT_START+1)
     peer1.start()
     peer2.start()
     peer2.send(f"Let's connect!", peer1.hostname, peer1.port)
@@ -95,10 +95,10 @@ def test_100_msg_to_broadcast_another_peer():
 def connect_x_peers_and_send_1_msg(x):
     peer_list = []
     for i in range(x):
-        peer_list.append(Server(LOCAL_HOST, PORT_START+i))
+        peer_list.append(PeerRouter(LOCAL_HOST, PORT_START+i))
         peer_list[i].start()
 
-    for z in range(len(peer_list)-1):
+    for z in range(x-1):
         for peer in peer_list[z+1:]:
             peer_list[z].send("Let's connect", peer.hostname, peer.port)
 
@@ -124,6 +124,10 @@ def connect_x_peers_and_send_1_msg(x):
 
 def test_connect_2_peers_and_send_1_msg():
     assert(connect_x_peers_and_send_1_msg(2) == 2*(2-1))
+
+
+def test_connect_3_peers_and_send_1_msg():
+    assert(connect_x_peers_and_send_1_msg(3) == 3*(3-1))
 
 
 def test_connect_10_peers_and_send_1_msg():

@@ -88,4 +88,4 @@
 
 ### 18 Nov 2021
 
-* *7 hours* Refactoring P2P Server so Peer class can be used to connec
+* *7 hours* Refactoring P2P Server so Peer class can be used to connect and threads are handled more nicely

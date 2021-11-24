@@ -14,7 +14,15 @@ class Peer:
         self.ip = ip
         self.port = port
         self.headersize = HEADERSIZE
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = None
+
+    def getAddressInfo(self):
+        """ Return socket format for address """
+        return (self.ip, self.port)
+
+    def copy(self):
+        """ Returns a copy of this peer (without socket reference)"""
+        return Peer(self.ip, self.port)
 
     def send(self, data):
         """Sends data to a specific peer"""
@@ -22,7 +30,6 @@ class Peer:
             pickleData = pickle.dumps(data)
             msg = bytes(f'{len(pickleData):<{self.headersize}}',
                         'utf-8') + pickleData
-            self.socket.connect((self.ip, self.port))
             self.socket.send(msg)
             return True
         except TypeError:
