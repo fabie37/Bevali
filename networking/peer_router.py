@@ -1,15 +1,19 @@
 import socket
 import select
 import pickle
+from queue import Empty, Queue
 from networking import HEADERSIZE
 from networking import ServerStatus
 from networking import serverLogger
+from networking import Peer
 from multithreading import ThreadManager
 from multithreading import ManagedThread
 from multithreading import ThreadStatus
 from threading import Lock
 from threading import Condition
 from time import sleep
+
+from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message
 
 
 class PeerRouter:
@@ -18,7 +22,6 @@ class PeerRouter:
     def __init__(self, hostname, port, id=None):
 
         # Server Configuration Settings
-        self.id = id
         self.hostname = hostname
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,7 +30,8 @@ class PeerRouter:
         # Define Peers in sever
         self.peerLock = Lock()
         self.socketList = [self.serverSocket]
-        self.peerList = {}
+        self.socketAddressToPeerAddress = {}
+        self.peerAddressToSocket = {}  # (Peer List)
 
         # Define Thread Manager
         self.threadManager = ThreadManager()
@@ -36,16 +40,27 @@ class PeerRouter:
         self.status = ServerStatus.INIT
 
         # TX Buffer handler
-        self.txbuffer = []
+        self.txbuffer = Queue()
         txThread = ManagedThread(
             target=self.txThread, name=f"TX Thread")
         self.threadManager.addThread(txThread)
 
+        # Message Handler
+        msgThread = ManagedThread(
+            target=self.msgThread, name=f"Message Thread")
+        self.threadManager.addThread(msgThread)
+
         # RX Buffer handler
-        self.rxbuffer = []
+        self.rxbuffer = Queue()
         rxThread = ManagedThread(
             target=self.rxThread, name=f"RX Thread")
         self.threadManager.addThread(rxThread)
+
+        # Data Buffer
+        # This is different from rx as the RX handler only accepts messages
+        # The message thread then handles the messages and adds any sent data to the databuffer
+        # for another thread to accept and use.
+        self.databuffer = Queue()
 
     def start(self):
         """ Starts all threads associated with Server Class """
@@ -61,56 +76,77 @@ class PeerRouter:
         for sock in self.socketList:
             sock.close()
         self.serverSocket.close()
-        self.peerList = {}
-        self.txbuffer = []
-        self.rxbuffer = []
-
+        self.socketAddressToPeerAddress = {}
+        self.peerAddressToSocket = {}
+        self.txbuffer = Queue()
+        self.rxbuffer = Queue()
         return
 
-    def pushTxBuffer(self, tx_data):
-        """ Pushes data into tx buffer """
-        try:
-            with self.threadManager.getThreadSignal("TX Thread"):
-                self.txbuffer.append(tx_data)
-                self.threadManager.getThreadSignal("TX Thread").notify()
-            return True
-        except:
-            serverLogger.error("Failed to push to TX Buffer")
-            return False
+    def connect(self, ip, port):
+        """ Connects to a peer.
+            This process involves both the peer adding this router to thier peer list,
+            and this router adding the peer to the peer list. 
+        """
+        fromPeer = (self.hostname, self.port)
+        toPeer = (ip, port)
 
-    def clearTxBuffer(self):
-        """ Clears data in rxBuffer """
-        try:
-            with self.threadManager.getThreadLock("TX Thread"):
-                self.txbuffer = []
-            return True
-        except:
-            serverLogger.error("Failed to clear TX Buffer")
-            return False
+        # Check that you aren't already connected to peer
+        with self.peerLock:
+            if (toPeer not in self.peerAddressToSocket):
+                msg = ConnectMessage(toPeer, fromPeer)
+                self.txbuffer.put(msg)
 
-    def pushRxBuffer(self, rx_data):
-        """ Pushes data into rx buffer """
-        try:
-            with self.threadManager.getThreadSignal("RX Thread"):
-                self.rxbuffer.append(rx_data)
-                self.threadManager.getThreadSignal("RX Thread").notify()
-            return True
-        except:
-            serverLogger.error("Failed to push to RX Buffer")
-            return False
+    def getPeers(self, ip, port):
+        """
+            Connects to a peer and asks them for their peers.
+            This is non blocking, so the thread calling this might need to wait.
+            Ie there is no way of knowing if the peer will even reply!
+            Easy check to implement would be to add signal for when the msg thread gets
+            the reply to this message (SendPeerListMessage), 
+            it signals this thread. But thats not important rightnow
+        """
+        fromPeer = (self.hostname, self.port)
+        toPeer = (ip, port)
 
-    def clearRxBuffer(self):
-        """ Clears data in rxBuffer """
-        try:
-            with self.threadManager.getThreadLock("RX Thread"):
-                self.rxbuffer = []
-            return True
-        except:
-            serverLogger.error("Failed to clear RX Buffer")
-            return False
+        # First we will connect with the peer
+        with self.peerLock:
+            if (toPeer not in self.peerAddressToSocket):
+                connectMsg = ConnectMessage(toPeer, fromPeer)
+                self.txbuffer.put(connectMsg)
 
-    @staticmethod
-    def recv(peer_socket):
+        # Right after, we will send them a message to send us their peer list
+        getPeersMsg = GetPeerListMessage(toPeer, fromPeer)
+        self.txbuffer.put(getPeersMsg)
+
+    def send(self, ip, port, data):
+        """
+            Will send any data to a peer, can be any python object (that does not use file handles)
+            If peer not in peerlist it will connect to peer.
+        """
+        fromPeer = (self.hostname, self.port)
+        toPeer = (ip, port)
+
+        # Check if we are connected to peer, if not connect to peer
+        with self.peerLock:
+            if (toPeer not in self.peerAddressToSocket):
+                connectMsg = ConnectMessage(toPeer, fromPeer)
+                self.txbuffer.put(connectMsg)
+
+        dataMsg = DataMessage(toPeer, fromPeer, data)
+        self.txbuffer.put(dataMsg)
+
+    def broadcast(self, data):
+        """
+            Broadcasts data to all other peers in network some data
+        """
+        fromPeer = (self.hostname, self.port)
+
+        for peerAddress in self.peerAddressToSocket.keys():
+            toPeer = peerAddress
+            dataMsg = DataMessage(toPeer, fromPeer, data)
+            self.txbuffer.put(dataMsg)
+
+    def recv(self, peer_socket):
         """ Recieve data from a peer socket """
         try:
             message_header = peer_socket.recv(HEADERSIZE)
@@ -121,83 +157,80 @@ class PeerRouter:
             message_length = int(message_header.decode("utf-8").strip())
             client_msg = peer_socket.recv(message_length)
             rx_data = pickle.loads(client_msg)
-            return {"header": message_header, "data": rx_data}
+            return rx_data
         except Exception:
             serverLogger.exception("Failed to read from peer socket!")
             return False
 
-    def send(self, data, ip=None, port=None):
-        """ send: Sends data to peers. If port and IP are not specified, broadcast to all """
+    def serializeMessage(self, msg):
+        """ serializeMessage: Pickles message for sending. """
         try:
-            pickleData = pickle.dumps(data)
-            msg = bytes(f'{len(pickleData):<{HEADERSIZE}}',
-                        'utf-8') + pickleData
+            pickleData = pickle.dumps(msg)
+            serializedMsg = bytes(f'{len(pickleData):<{HEADERSIZE}}',
+                                  'utf-8') + pickleData
 
-            # Format msg if wanted to send to specific client
-            if (ip is not None and port is not None):
-                address = (ip, port)
-                msg = {"address": address, "data": msg}
-
-            with self.threadManager.getThreadLock("TX Thread"):
-                self.txbuffer.append(msg)
-                self.threadManager.getThreadSignal("TX Thread").notify()
-            return True
+            return serializedMsg
         except Exception:
-            serverLogger.exception("Cannot send data!")
-            raise False
+            serverLogger.exception("Could not serialize message!")
+            return None
+
+    def deserializeMessage(self, serializedMsg):
+        """ deserializedMessage: Depickles message for receveing. """
+        try:
+            msg = pickle.dumps(serializedMsg)
+            return msg
+        except Exception:
+            serverLogger.exception("Could not deserialize message!")
+            return None
 
     def txThread(self, _thread):
         """ txThread: Thread that sends data when asked to """
         try:
             # Continue Loop until thread is signaled to stop
             while _thread["status"] != ThreadStatus.STOPPING:
-
-                # Wait for a signal to transmit data
-                msgs = []
-                with _thread["signal"]:
-                    while len(self.txbuffer) == 0 and _thread["status"] != ThreadStatus.STOPPING:
-                        _thread["signal"].wait()
-                    msgs = self.txbuffer
-                    self.txbuffer = []
-
-                # Iterate through messages in buffer to send
-                for msg in msgs:
-                    # If msg is for a specific client
+                try:
+                    # Wait for buffer to have a message
+                    msg = self.txbuffer.get(block=True, timeout=1)
+                    # Lock peer & socket list in case another thread is using them
                     with self.peerLock:
-                        if type(msg) is dict and "address" in msg:
+                        if isinstance(msg, Message):
                             try:
-                                # If peer is in our list sent them the data
-                                if msg['address'] in self.peerList:
-                                    self.peerList[msg["address"]].send(
-                                        msg["data"])
+                                # Serialize message to be sent
+                                serializedMsg = self.serializeMessage(msg)
+
+                                # Send message if connected to a peer
+                                if msg.toPeer in self.peerAddressToSocket:
+                                    self.peerAddressToSocket[msg.toPeer].send(
+                                        serializedMsg)
                                 else:
-                                    # Else directly send data to peer
+                                    # Else create a new socket for peer
                                     sock = socket.socket(
                                         socket.AF_INET, socket.SOCK_STREAM)
                                     sock.setsockopt(
                                         socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                                    sock.connect(msg["address"])
-                                    sock.send(msg["data"])
+                                    sock.connect(msg.toPeer)
+
+                                    # Socket List [... sock]
                                     self.socketList.append(sock)
-                                    self.peerList[msg["address"]] = sock
+
+                                    # Msg.toPeer -> toPeer
+                                    self.socketAddressToPeerAddress[msg.toPeer] = msg.toPeer
+
+                                    # toPeer -> sock
+                                    self.peerAddressToSocket[msg.toPeer] = sock
+                                    sock.send(serializedMsg)
                             except Exception:
                                 serverLogger.exception(
-                                    "Couldn't send to message to peer!")
-                                pass
+                                    "Could not send message in txBuffer!")
                         else:
-                            # Else, if no peer selected in msg, broadcast to everyone.
-                            for peer in self.socketList:
-                                try:
-                                    if peer != self.serverSocket:
-                                        peer.send(msg)
-                                except Exception:
-                                    serverLogger.exception(
-                                        "Couldn't broadcast message to a peer!")
-                                    pass
+                            serverLogger.info(
+                                f"Message put in txBuffer was not of type message but of type {type(msg)}")
+                except Empty:
+                    serverLogger.info("TX Buffer is empty.")
         except Exception:
             serverLogger.exception("Exception raised in TX thread.")
-            with self.statusLock:
-                self.status = ServerStatus.ERROR
+            with _thread["lock"]:
+                _thread["status"] = ThreadStatus.ERROR
 
     def rxThread(self, _thread):
         """ rxThread: Thread that listens for connections and data. """
@@ -211,43 +244,68 @@ class PeerRouter:
                     self.socketList, [], self.socketList, 0.5)
 
                 for triggered_socket in read_sockets:
-                    # if a new peer connects to server's socket, add to list and store the incomming message.
+                    # if a new peer connects to server's socket, get thier incoming message and push to rx buffer.
                     if triggered_socket == self.serverSocket:
                         peer_socket, peer_address = self.serverSocket.accept()
                         serverLogger.info(
                             f"Connection from {peer_address} has been establised!")
-
                         msg = self.recv(peer_socket)
-                        if msg == False:
+                        if msg is False or not isinstance(msg, Message):
                             continue
-                        self.peerLock.acquire()
-                        self.socketList.append(peer_socket)
-                        self.peerList[peer_address] = peer_socket
-                        self.peerLock.release()
-                        msg["address"] = peer_address
-                        self.pushRxBuffer(msg)
+                        msg.setSourceSocket(peer_socket, peer_address)
+                        self.rxbuffer.put(msg)
                     # Else Already connected peer sent us a new message
                     else:
                         msg = self.recv(triggered_socket)
+                        # If connection closed, remove socket
                         if msg is False:
                             serverLogger.info(
                                 f"Closed connection from {triggered_socket.getpeername()}")
-                            with self.peerLock:
-                                self.socketList.remove(triggered_socket)
-                                del self.peerList[triggered_socket.getpeername()]
+                            self.removeSocket(triggered_socket)
                             continue
-                        msg["address"] = triggered_socket.getpeername()
-                        self.pushRxBuffer(msg)
-                        serverLogger.info(
-                            f"Recevied message from {msg['address']}")
+
+                        # Else check message is type message
+                        if isinstance(msg, Message):
+                            msg.setSourceSocket(
+                                triggered_socket, triggered_socket.getpeername())
+                            self.rxbuffer.put(msg)
+                            serverLogger.info(
+                                f"Recevied message from {msg.fromPeer}")
+                        else:
+                            serverLogger.error(
+                                "Message received was not of type message!")
 
                 # If any sockets throw an exception, remove them as a peer
                 for bad_socket in exception_sockets:
-                    with self.peerLock:
-                        self.socketList.remove(bad_socket)
-                        del self.peerList[bad_socket.getpeername()]
-
+                    self.removeSocket(bad_socket)
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")
-            with self.statusLock:
-                self.status = ServerStatus.ERROR
+            with _thread["lock"]:
+                _thread["status"] = ThreadStatus.ERROR
+
+    def msgThread(self, _thread):
+        """ msgThread: Opens messages in rx buffer """
+        try:
+            while _thread["status"] != ThreadStatus.STOPPING:
+                try:
+                    msg = self.rxbuffer.get(block=True, timeout=1)
+                    msg.open(self)
+                except Empty:
+                    serverLogger.info("No messages to open.")
+        except Exception:
+            serverLogger.exception("Exception raised in message thread.")
+            with _thread["lock"]:
+                _thread["status"] = ThreadStatus.ERROR
+
+    def removeSocket(self, socket):
+        """ Removes a socket from the router """
+        try:
+            with self.peerLock:
+                socketAddress = socket.getpeername()
+                peerAddress = self.socketAddressToPeerAddress[socketAddress]
+                self.socketList.remove(socket)
+                del self.peerAddressToSocket[peerAddress]
+                del self.socketAddressToPeerAddress[socketAddress]
+        except Exception:
+            serverLogger.info(
+                "Tried to remove a socket that was already removed!")
