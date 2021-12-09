@@ -13,7 +13,7 @@ from threading import Lock
 from threading import Condition
 from time import sleep
 
-from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message
+from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message, PeerRequestMessage
 
 
 class PeerRouter:
@@ -97,6 +97,22 @@ class PeerRouter:
                 self.txbuffer.put(msg)
 
     def getPeers(self, ip, port):
+        """
+            Connects to a peer and tells that peer to tell all his peers to connect to me.
+            This should hopefully solve the issue of two peers trying to connect to eachother at the same time.
+            As there is no new, you only even need to connect to one peer. 
+        """
+        fromPeer = (self.hostname, self.port)
+        toPeer = (ip, port)
+
+        # First connect
+        self.connect(ip, port)
+
+        # Then send peer request
+        requestMsg = PeerRequestMessage(toPeer, fromPeer)
+        self.txbuffer.put(requestMsg)
+
+    def getPeerList(self, ip, port):
         """
             Connects to a peer and asks them for their peers.
             This is non blocking, so the thread calling this might need to wait.

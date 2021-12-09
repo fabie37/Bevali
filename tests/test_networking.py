@@ -176,24 +176,18 @@ def connect_x_peers_and_send_1_msg(x):
 
     # Let all peers connect to node peer
     for peer in peer_list[1:]:
-        peer.connect(node.hostname, node.port)
-
-    # Wait for this to happen
-    sleep(log(x)*5)
-
-    # Then get all peers to update their peer list
-    for peer in peer_list[1:]:
         peer.getPeers(node.hostname, node.port)
+        sleep(1)
 
     # Wait for this to happen
-    sleep(log(x)*5)
+    sleep(log(x)*2)
 
     # Get each node to broadcast a message
     for peer in peer_list:
         peer.broadcast("Test Message")
 
     # Wait for this to happen
-    sleep(log(x)*3)
+    sleep(log(x)*2)
 
     msgs = []
 

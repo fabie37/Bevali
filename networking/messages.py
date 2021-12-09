@@ -1,3 +1,6 @@
+from networking import peer
+
+
 class Message:
     """ Parent Class for sending messages """
 
@@ -43,8 +46,35 @@ class ConnectMessage(Message):
             print("No source socket found!\n")
 
 
+class PeerRequestMessage(Message):
+    """ Message to send if you want a peer to tell their peers to conenct to you"""
+
+    def __init__(self, toPeer, fromPeer):
+        super().__init__(toPeer, fromPeer)
+
+    def open(self, peerRouter):
+        for peerAddress in peerRouter.peerAddressToSocket.keys():
+            if (peerAddress != self.fromPeer):
+                toPeer = peerAddress
+                fromPeer = (peerRouter.hostname, peerRouter.port)
+                newPeer = self.fromPeer
+                updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
+                peerRouter.txbuffer.put(updateMsg)
+
+
+class NewPeerUpdateMessage(Message):
+    """ Message to send to peers to tell them to connect to a new peer"""
+
+    def __init__(self, toPeer, fromPeer, newPeer):
+        super().__init__(toPeer, fromPeer)
+        self.newPeer = newPeer
+
+    def open(self, peerRouter):
+        peerRouter.connect(self.newPeer[0], self.newPeer[1])
+
+
 class GetPeerListMessage(Message):
-    """ Message to send if peers are wanted """
+    """ Message to send if peer list is wanted """
 
     def __init__(self, toPeer, fromPeer):
         super().__init__(toPeer, fromPeer)
