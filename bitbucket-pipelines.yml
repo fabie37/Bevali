@@ -16,7 +16,7 @@ pipelines:
           script:
             - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
             - pip install pytest
-            - pytest -v tests/* --junitxml=test-reports/report.xml
+            - pytest -v tests/* --ignore=tests/test_networking.py --junitxml=test-reports/report.xml
       - step:
           runs-on: self.hosted
           name: Lint code

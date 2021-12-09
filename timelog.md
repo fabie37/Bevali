@@ -90,3 +90,46 @@
 * *3 hours* Updated blockchain class to now have a proof of work algorithm.
 * *1 hours* Updated pipeline to have a runner on local server.
 * *1 hours* Started basic research on sockets in python.
+## Week 6
+
+## Week 7
+
+### 11 Nov 2021
+
+* *3 hours* Implemented networking methods for client and server
+
+### 13 Nov 2021
+
+* *3 hours* Debugging networking methods for P2P server
+
+### 14 Nov 2021
+
+* *1 hours* Debugging networking methods for P2P server
+
+## Week 8
+
+### 15 Nov 2021
+
+* *1 hours* Implemented Tests for P2P server
+
+### 18 Nov 2021
+
+* *7 hours* Refactoring P2P Server so Peer class can be used to connect and threads are handled more nicely
+
+## Week 10
+
+### 06 Dec 2021
+
+* *4 hours* More refactoring, of P2P Networking, need to do MVP and move on to SmartContracts. 
+
+### 07 Dec 2021
+
+* *3 hours* Worked on disertation outline for project.
+
+### 08 Dec 2021
+
+* *3 hours* Worked on more messaging for P2P networking, found bug when connecting two peers at the same time
+
+### 09 Dec 2021
+
+* *4 hours* Added send and broadcast commands, however, bug still not fixed, going to check the connect sequence

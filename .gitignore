@@ -12,6 +12,9 @@ env/
 .vscode/
 vscode/
 
+env/
+.vscode/
+
 # Compiled Java class files
 *.class
 
