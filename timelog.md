@@ -64,6 +64,32 @@
 * *2 hours* Researched Python based project structures and correct practices for setting up the project
 * *0.5 hours* Commited basic python structure for the project.
 
+## Week 4
+
+### 20 Oct 2021
+
+* *2 hours* Started block class and implemented make file for easy dependancy installation.
+
+### 23 Oct 2021
+
+* *2 hours* Started making unit test for block class and researched good practices for testing in python.
+
+## Week 5
+
+### 25 Oct 2021
+
+* *0.5 hours* Created CI/CD pipeline for testing when pushing to repository.
+* *0.5 hours* Created blockchain class to manage blockchain state.
+
+### 26 Oct 2021
+
+* *2 hours* Updated blockchain class to check for chain integrity. Unit tests were also provided.
+* *0.5 hours* Debugged issues with pipeline and failed builds.
+
+### 27 Oct 2021
+* *3 hours* Updated blockchain class to now have a proof of work algorithm.
+* *1 hours* Updated pipeline to have a runner on local server.
+* *1 hours* Started basic research on sockets in python.
 ## Week 6
 
 ## Week 7

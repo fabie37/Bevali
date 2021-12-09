@@ -9,6 +9,7 @@ pipelines:
   default:
     - parallel:
       - step:
+          runs-on: self.hosted
           name: Test
           caches:
             - pip
@@ -17,8 +18,9 @@ pipelines:
             - pip install pytest
             - pytest -v tests/* --ignore=tests/test_networking.py --junitxml=test-reports/report.xml
       - step:
+          runs-on: self.hosted
           name: Lint code
           script:
             # Enforce style consistency across Python projects https://flake8.pycqa.org/en/latest/manpage.html
             - pip install flake8
-            - flake8 . --extend-exclude=dist,build,__init__ --show-source --statistics --ignore=E501
+            - flake8 . --extend-exclude=dist,build --show-source --statistics --ignore=E501 --per-file-ignores="__init__.py:F401"

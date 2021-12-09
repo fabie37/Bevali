@@ -6,6 +6,11 @@
 # Node artifact files
 node_modules/
 dist/
+env/
+
+# VS Code Settings
+.vscode/
+vscode/
 
 env/
 .vscode/

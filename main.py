@@ -1,6 +1,11 @@
+from blockchain import Block
 from networking import PeerRouter
 from networking import Peer
 from time import sleep
+
+firstBlock = Block()
+hash = firstBlock.generate_hash()
+print(hash)
 
 LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 1234
