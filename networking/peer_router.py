@@ -5,7 +5,6 @@ from queue import Empty, Queue
 from networking import HEADERSIZE
 from networking import ServerStatus
 from networking import serverLogger
-from networking import Peer
 from multithreading import ThreadManager
 from multithreading import ManagedThread
 from multithreading import ThreadStatus

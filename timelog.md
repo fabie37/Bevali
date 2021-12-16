@@ -133,3 +133,13 @@
 ### 09 Dec 2021
 
 * *4 hours* Added send and broadcast commands, however, bug still not fixed, going to check the connect sequence
+
+## Week 11
+
+### 12 Dec 2021
+
+* *3 hours* Researched more on the background for the dissertation writting. Specifically on how to write background research. 
+
+### 16 Dec 2021
+
+* *6 hours* Researched more on background, found some great papers and have added them to citations manager." 
