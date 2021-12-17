@@ -332,3 +332,5 @@ class PeerRouter:
         except Exception:
             serverLogger.info(
                 "Tried to remove a socket but failed!")
+        finally:
+            socket.close()
