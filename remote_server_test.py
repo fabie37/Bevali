@@ -11,4 +11,5 @@ Router.start()
 
 while (1):
     data = Router.databuffer.get(block=True)
+    Router.broadcast("Got your message!")
     print(data)

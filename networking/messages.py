@@ -30,7 +30,7 @@ class ConnectMessage(Message):
         # if (self.sourceSocket and socketAddress[0] == self.fromPeer[0]):
         if (self.sourceSocket):
             with peerRouter.peerLock:
-                if (self.fromPeer not in peerRouter.peerAddressToSocket):
+                if (self.fromPeer not in peerRouter.peerAddressToSocket or peerRouter.peerAddressToSocket[self.fromPeer].fileno() == -1):
                     # Add person who sent the message to socket mapping
                     # Socket Specific Address -> fromPeer
                     peerRouter.socketAddressToPeerAddress[socketAddress] = self.fromPeer
