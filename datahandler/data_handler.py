@@ -19,14 +19,24 @@ class DataHandler:
         dataThread = ManagedThread(target=self.dataThread, name=f"Data Thread")
         self.threadManager.addThread(dataThread)
 
+        self.dataSink = {}
+
+    def addDataSink(self, dataSink):
+        """ Defines a data sink to send data from source to sink """
+        self.dataSink[dataSink.dataType] = dataSink
+
     def dataThread(self, _thread):
+        """ This Thread handles where to send data from source to sink """
         while _thread["status"] != ThreadStatus.STOPPING:
             try:
                 data = self.dataSource.get(block=True, timeout=3)
-                if isinstance(data, Block):
-                    print("Got block")
+                dataType = type(data)
+                self.dataSink[dataType].append(data)
+            except Exception as e:
+                print(e)
 
-                if isinstance(data, Blockchain):
-                    print("Got blockchain")
-            except:
-                pass
+    def start(self):
+        self.threadManager.startThreads()
+
+    def stop(self):
+        self.threadManager.stopThreads()

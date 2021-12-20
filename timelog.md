@@ -143,3 +143,4 @@
 ### 16 Dec 2021
 
 * *6 hours* Researched more on background, found some great papers and have added them to citations manager." 
+* *3 hours* Tested P2P implementation on remote server and ironed out bugs on linux based systems."

@@ -3,7 +3,7 @@ from networking.peer_router import PeerRouter
 from time import sleep
 
 LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 1236
+LOCAL_PORT = 1234
 
 Router = PeerRouter(LOCAL_HOST, LOCAL_PORT)
 Router.start()
