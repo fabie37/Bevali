@@ -5,7 +5,6 @@ from queue import Empty, Queue
 from networking import HEADERSIZE
 from networking import ServerStatus
 from networking import serverLogger
-from networking import Peer
 from multithreading import ThreadManager
 from multithreading import ManagedThread
 from multithreading import ThreadStatus
@@ -256,44 +255,52 @@ class PeerRouter:
 
             while _thread["status"] != ThreadStatus.STOPPING:
                 # Wake when something has happened to any of the sockets.
-                read_sockets, _, exception_sockets = select.select(
-                    self.socketList, [], self.socketList, 0.5)
+                try:
+                    read_sockets, _, exception_sockets = select.select(
+                        self.socketList, [], self.socketList, 0.5)
 
-                for triggered_socket in read_sockets:
-                    # if a new peer connects to server's socket, get thier incoming message and push to rx buffer.
-                    if triggered_socket == self.serverSocket:
-                        peer_socket, peer_address = self.serverSocket.accept()
-                        serverLogger.info(
-                            f"Connection from {peer_address} has been establised!")
-                        msg = self.recv(peer_socket)
-                        if msg is False or not isinstance(msg, Message):
-                            continue
-                        msg.setSourceSocket(peer_socket, peer_address)
-                        self.rxbuffer.put(msg)
-                    # Else Already connected peer sent us a new message
-                    else:
-                        msg = self.recv(triggered_socket)
-                        # If connection closed, remove socket
-                        if msg is False:
+                    for triggered_socket in read_sockets:
+                        # if a new peer connects to server's socket, get thier incoming message and push to rx buffer.
+                        if triggered_socket == self.serverSocket:
+                            peer_socket, peer_address = self.serverSocket.accept()
                             serverLogger.info(
-                                f"Closed connection from {triggered_socket.getpeername()}")
-                            self.removeSocket(triggered_socket)
-                            continue
-
-                        # Else check message is type message
-                        if isinstance(msg, Message):
-                            msg.setSourceSocket(
-                                triggered_socket, triggered_socket.getpeername())
+                                f"Connection from {peer_address} has been establised!")
+                            msg = self.recv(peer_socket)
+                            if msg is False or not isinstance(msg, Message):
+                                continue
+                            msg.setSourceSocket(peer_socket, peer_address)
                             self.rxbuffer.put(msg)
-                            serverLogger.info(
-                                f"Recevied message from {msg.fromPeer}")
+                        # Else connected peer sent us a new message
                         else:
-                            serverLogger.error(
-                                "Message received was not of type message!")
+                            msg = self.recv(triggered_socket)
+                            # If connection closed, remove socket
+                            if msg is False:
+                                try:
+                                    serverLogger.info(
+                                        f"Closed connection from {triggered_socket.getpeername()}")
+                                except:
+                                    serverLogger.info(
+                                        "A socket closed expectedly!")
+                                finally:
+                                    self.removeSocket(triggered_socket)
+                                    continue
 
-                # If any sockets throw an exception, remove them as a peer
-                for bad_socket in exception_sockets:
-                    self.removeSocket(bad_socket)
+                            # Else check message is type message
+                            if isinstance(msg, Message):
+                                msg.setSourceSocket(
+                                    triggered_socket, triggered_socket.getpeername())
+                                self.rxbuffer.put(msg)
+                                serverLogger.info(
+                                    f"Recevied message from {msg.fromPeer}")
+                            else:
+                                serverLogger.error(
+                                    "Message received was not of type message!")
+
+                    # If any sockets throw an exception, remove them as a peer
+                    for bad_socket in exception_sockets:
+                        self.removeSocket(bad_socket)
+                except Exception as e:
+                    serverLogger.error("Connection stopped suddenly.")
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")
             with _thread["lock"]:
@@ -317,11 +324,13 @@ class PeerRouter:
         """ Removes a socket from the router """
         try:
             with self.peerLock:
+                self.socketList.remove(socket)
                 socketAddress = socket.getpeername()
                 peerAddress = self.socketAddressToPeerAddress[socketAddress]
-                self.socketList.remove(socket)
                 del self.peerAddressToSocket[peerAddress]
                 del self.socketAddressToPeerAddress[socketAddress]
         except Exception:
             serverLogger.info(
-                "Tried to remove a socket that was already removed!")
+                "Tried to remove a socket but failed!")
+        finally:
+            socket.close()

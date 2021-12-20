@@ -1,3 +1,10 @@
+"""
+This class extends the python thread class.
+It enables a signaling system for the thread manager class
+so that it is able to detect if a thread has successful returned.
+"""
+
+
 import threading
 from enum import Enum
 from time import sleep
