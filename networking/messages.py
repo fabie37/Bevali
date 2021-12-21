@@ -1,6 +1,3 @@
-from networking import peer
-
-
 class Message:
     """ Parent Class for sending messages """
 

@@ -10,7 +10,6 @@ from multithreading import ManagedThread
 from multithreading import ThreadStatus
 from threading import Lock
 from threading import Condition
-from time import sleep
 
 from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message, PeerRequestMessage
 

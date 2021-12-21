@@ -1,11 +1,9 @@
 
-from pickle import FALSE
 from datahandler import DataHandler, BlockChainSink, BlockSink
 from networking import PeerRouter
 from blockchain import Block
 from blockchain import Blockchain
 from time import sleep
-from math import log
 from queue import Queue
 
 LOCAL_HOST = "127.0.0.1"

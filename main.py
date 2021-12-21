@@ -1,6 +1,5 @@
 from blockchain import Block
 from networking import PeerRouter
-from networking import Peer
 from time import sleep
 
 firstBlock = Block()

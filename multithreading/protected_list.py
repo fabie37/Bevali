@@ -1,5 +1,5 @@
 
-from threading import Lock, Condition
+from threading import Lock
 
 
 class ProtectedList(list):

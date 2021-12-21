@@ -1,7 +1,7 @@
 """
     This file contains tests for the class 'Block' contained within the 'Blockchain' Module
 """
-from blockchain import Block, block
+from blockchain import Block
 
 
 def test_genisus_block_hash():

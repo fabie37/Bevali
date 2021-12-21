@@ -1,6 +1,5 @@
 
 from bevali import Bevali
-from blockchain import Block
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
 from time import sleep

@@ -1,4 +1,3 @@
-from queue import Empty
 from networking.peer_router import PeerRouter
 from time import sleep
 

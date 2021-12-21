@@ -7,7 +7,6 @@ so that it is able to detect if a thread has successful returned.
 
 import threading
 from enum import Enum
-from time import sleep
 
 
 class ThreadStatus(Enum):
