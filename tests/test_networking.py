@@ -12,14 +12,14 @@ PORT_START = 1200
 def connect_x_peers_together(x):
     peer_list = []
     for i in range(x):
-        peer_list.append(PeerRouter(LOCAL_HOST, PORT_START+i))
+        peer_list.append(PeerRouter(LOCAL_HOST, PORT_START + i))
         peer_list[i].start()
 
-    for z in range(x-1):
-        for peer in peer_list[z+1:]:
+    for z in range(x - 1):
+        for peer in peer_list[z + 1:]:
             peer_list[z].connect(peer.hostname, peer.port)
 
-    sleep(log(x)*2)
+    sleep(log(x) * 2)
 
     connected_peers_per_peer = []
     for peer in peer_list:
@@ -32,39 +32,39 @@ def connect_x_peers_together(x):
 
 
 def test_connect_2_peers():
-    assert(connect_x_peers_together(2) == 2*(2-1))
+    assert(connect_x_peers_together(2) == 2 * (2 - 1))
 
 
 def test_connect_3_peers():
-    assert(connect_x_peers_together(3) == 3*(3-1))
+    assert(connect_x_peers_together(3) == 3 * (3 - 1))
 
 
 def test_connect_10_peers():
-    assert(connect_x_peers_together(10) == 10*(10-1))
+    assert(connect_x_peers_together(10) == 10 * (10 - 1))
 
 
 def test_connect_100_peers():
-    assert(connect_x_peers_together(100) == 100*(100-1))
+    assert(connect_x_peers_together(100) == 100 * (100 - 1))
 
 
 def get_x_peers_from_peer(x):
     peerList = []
     for i in range(0, x):
-        peerList.append(PeerRouter(LOCAL_HOST, PORT_START+i))
+        peerList.append(PeerRouter(LOCAL_HOST, PORT_START + i))
         peerList[i].start()
 
     # Connect first peer to all other peers
-    for i in range(1, x-1):
+    for i in range(1, x - 1):
         peerList[0].connect(peerList[i].hostname, peerList[i].port)
 
     # Wait for this to happen
-    sleep(log(x)*2)
+    sleep(log(x) * 2)
 
     # Ask final peer to get the peer list from first peer
     peerList[-1].getPeers(peerList[0].hostname, peerList[0].port)
 
     # Wait for this to happen
-    sleep(log(x)*2)
+    sleep(log(x) * 2)
 
     totalPeers = len(peerList[-1].peerAddressToSocket.items())
 
@@ -85,8 +85,8 @@ def test_get_50_peers_from_peer():
 
 
 def x_msg_sent_to_another_peer(x):
-    peer1 = PeerRouter(LOCAL_HOST, PORT_START+0)
-    peer2 = PeerRouter(LOCAL_HOST, PORT_START+1)
+    peer1 = PeerRouter(LOCAL_HOST, PORT_START + 0)
+    peer2 = PeerRouter(LOCAL_HOST, PORT_START + 1)
     peer1.start()
     peer2.start()
     for i in range(x):
@@ -125,8 +125,8 @@ def test_100_msg_sent_to_another_peer():
 
 
 def x_msg_to_broadcast_to_another_peer(x):
-    peer1 = PeerRouter(LOCAL_HOST, PORT_START+0)
-    peer2 = PeerRouter(LOCAL_HOST, PORT_START+1)
+    peer1 = PeerRouter(LOCAL_HOST, PORT_START + 0)
+    peer2 = PeerRouter(LOCAL_HOST, PORT_START + 1)
     peer1.start()
     peer2.start()
     peer2.connect(peer1.hostname, peer1.port)
@@ -171,7 +171,7 @@ def connect_x_peers_and_send_1_msg(x):
     node.start()
     peer_list.append(node)
     for i in range(1, x):
-        peer_list.append(PeerRouter(LOCAL_HOST, PORT_START+i))
+        peer_list.append(PeerRouter(LOCAL_HOST, PORT_START + i))
         peer_list[i].start()
 
     # Let all peers connect to node peer
@@ -180,14 +180,14 @@ def connect_x_peers_and_send_1_msg(x):
         sleep(1)
 
     # Wait for this to happen
-    sleep(log(x)*2)
+    sleep(log(x) * 2)
 
     # Get each node to broadcast a message
     for peer in peer_list:
         peer.broadcast("Test Message")
 
     # Wait for this to happen
-    sleep(log(x)*2)
+    sleep(log(x) * 2)
 
     msgs = []
 
@@ -200,19 +200,19 @@ def connect_x_peers_and_send_1_msg(x):
 
 
 def test_connect_2_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(2) == 2*(2-1))
+    assert(connect_x_peers_and_send_1_msg(2) == 2 * (2 - 1))
 
 
 def test_connect_3_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(3) == 3*(3-1))
+    assert(connect_x_peers_and_send_1_msg(3) == 3 * (3 - 1))
 
 
 def test_connect_10_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(10) == 10*(10-1))
+    assert(connect_x_peers_and_send_1_msg(10) == 10 * (10 - 1))
 
 
 def test_connect_100_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(100) == 100*(100-1))
+    assert(connect_x_peers_and_send_1_msg(100) == 100 * (100 - 1))
 
 
 def test_blocking_on_connect():
@@ -220,7 +220,7 @@ def test_blocking_on_connect():
         This tests if the basic blocking function works when connecting between 2 peers
     """
     bob = PeerRouter(LOCAL_HOST, PORT_START)
-    alice = PeerRouter(LOCAL_HOST, PORT_START+1)
+    alice = PeerRouter(LOCAL_HOST, PORT_START + 1)
 
     bob.start()
     alice.start()

@@ -24,7 +24,7 @@ while (1):
         while not Router.databuffer.empty():
             msg = Router.databuffer.get()
             print(msg)
-    except:
+    except Exception:
         continue
 
 print("Stopped")

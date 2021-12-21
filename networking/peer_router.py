@@ -41,18 +41,18 @@ class PeerRouter:
         # TX Buffer handler
         self.txbuffer = Queue()
         txThread = ManagedThread(
-            target=self.txThread, name=f"TX Thread")
+            target=self.txThread, name="TX Thread")
         self.threadManager.addThread(txThread)
 
         # Message Handler
         msgThread = ManagedThread(
-            target=self.msgThread, name=f"Message Thread")
+            target=self.msgThread, name="Message Thread")
         self.threadManager.addThread(msgThread)
 
         # RX Buffer handler
         self.rxbuffer = Queue()
         rxThread = ManagedThread(
-            target=self.rxThread, name=f"RX Thread")
+            target=self.rxThread, name="RX Thread")
         self.threadManager.addThread(rxThread)
 
         # Signal List
@@ -305,7 +305,7 @@ class PeerRouter:
                                 try:
                                     serverLogger.info(
                                         f"Closed connection from {triggered_socket.getpeername()}")
-                                except:
+                                except Exception:
                                     serverLogger.info(
                                         "A socket closed expectedly!")
                                 finally:
@@ -326,7 +326,7 @@ class PeerRouter:
                     # If any sockets throw an exception, remove them as a peer
                     for bad_socket in exception_sockets:
                         self.removeSocket(bad_socket)
-                except Exception as e:
+                except Exception:
                     serverLogger.error("Connection stopped suddenly.")
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")

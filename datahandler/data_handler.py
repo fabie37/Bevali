@@ -11,7 +11,7 @@ class DataHandler:
         self.threadManager = ThreadManager()
 
         # handler thread
-        dataThread = ManagedThread(target=self.dataThread, name=f"Data Thread")
+        dataThread = ManagedThread(target=self.dataThread, name="Data Thread")
         self.threadManager.addThread(dataThread)
 
         # A dictionary that specifies (type) -> list or queue to organise data to
@@ -70,7 +70,7 @@ class DataHandler:
                     key = (fromAddress, dataType)
                     with self.signalList[key]:
                         self.signalList[key].notify()
-                except:
+                except Exception:
                     # No threads waiting for this data,
                     print("No such signal exists!")
                     pass

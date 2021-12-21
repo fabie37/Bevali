@@ -6,7 +6,8 @@ import time
 class Block:
     """ Class to encapsulate the blocks within the blockchain. """
 
-    def __init__(self, blockNumber=0, previousHash=0, data=[], nonce=0, timestamp=time.time()):
+    def __init__(self, blockNumber=0, previousHash=0, data=[],
+                 nonce=0, timestamp=time.time()):
         self.blockNumber = blockNumber
         self.previousHash = previousHash
         self.nonce = nonce
@@ -18,8 +19,9 @@ class Block:
         self.data.append(data)
 
     def generate_hash(self):
-        """ Generates a hash of the block containing: [blockNumber, previousHash, nonce, data, timestampe] """
-
+        """ Generates a hash of the block containing: 
+            [blockNumber, previousHash, nonce, data, timestamp]
+        """
         blockObject = {
             "blockNumber": self.blockNumber,
             "previousHash": self.previousHash,

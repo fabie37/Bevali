@@ -1,13 +1,13 @@
 
 from queue import Queue
-from datahandler.data_requests_messages import BlockchainRequestMessage
 from multithreading.managed_thread import ManagedThread
 from networking import PeerRouter
-from datahandler import DataHandler, BlockChainSink, BlockSink, PoolSink, RequestsSink
-from datahandler import DataRequestMessages, BlockchainRequestMessage
+from datahandler import DataHandler
+from datahandler import BlockChainSink, BlockSink, PoolSink, RequestsSink
+from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
 from threading import Lock
-from blockchain import Blockchain, Block, block
+from blockchain import Blockchain, Block
 
 
 class Bevali():
@@ -37,10 +37,10 @@ class Bevali():
         # Handles incoming data send from other peers from the router
         self.handler = DataHandler(self.router.databuffer)
 
-        # Handles all threads concerning this class (not networking or data routing)
+        # Handles all threads concerning this class
         self.threadManager = ThreadManager()
         procThread = ManagedThread(
-            target=self.processingThread, name=f"Processing Thread")
+            target=self.processingThread, name="Processing Thread")
         self.threadManager.addThread(procThread)
 
         # Defines where to tell the data handler to send incoming data to
@@ -110,15 +110,16 @@ class Bevali():
                 try:
                     request = self.requests.get(block=True, timeout=1)
                     request.open(self)
-                except:
+                except Exception:
                     # No requests available
                     pass
 
                 # 2. Process a incoming blocks
                 try:
-                    block = self.blocks.get(block=True, timeout=1)
+                    # block = self.blocks.get(block=True, timeout=1)
                     # Do checks
-                except:
+                    pass
+                except Exception:
                     # No blocks available
                     pass
 
@@ -128,7 +129,7 @@ class Bevali():
                     blockchain = self.blockchains.get(block=True, timeout=1)
                     self.processBlockchain(blockchain)
 
-                except:
+                except Exception:
                     # No blockchain available
                     pass
 

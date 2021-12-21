@@ -22,7 +22,7 @@ def test_create_new_blockchain():
 def test_get_peer_blockchain():
 
     alice = Bevali(LOCAL_HOST, PORT_START)
-    bob = Bevali(LOCAL_HOST, PORT_START+1)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
     alice.start()
     bob.start()
 

@@ -60,7 +60,7 @@ class AcceptedConnectMessage(Message):
         try:
             with peerRouter.signalList[address]:
                 peerRouter.signalList[address].notify()
-        except:
+        except Exception:
             # No signal exists! Ignore
             print("No such signal exists!")
 

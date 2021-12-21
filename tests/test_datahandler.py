@@ -25,7 +25,7 @@ data_types = {
 def get_data_from_a_peer(data):
 
     bob_router = PeerRouter(LOCAL_HOST, PORT_START)
-    carol_router = PeerRouter(LOCAL_HOST, PORT_START+1)
+    carol_router = PeerRouter(LOCAL_HOST, PORT_START + 1)
     carol_handler = DataHandler(carol_router.databuffer)
 
     carol_data_sink = data_types[type(data)]()
