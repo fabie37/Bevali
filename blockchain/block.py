@@ -19,7 +19,7 @@ class Block:
         self.data.append(data)
 
     def generate_hash(self):
-        """ Generates a hash of the block containing: 
+        """ Generates a hash of the block containing:
             [blockNumber, previousHash, nonce, data, timestamp]
         """
         blockObject = {

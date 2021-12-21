@@ -1,7 +1,5 @@
-import socket
 import pickle
-import logging
-from typing import Type
+
 
 from networking import HEADERSIZE
 from networking import peerLogger
