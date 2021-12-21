@@ -150,3 +150,8 @@
 ### 20 Dec 2021
 
 * *3 hours* Implemented data handler thread to handle incomming netowrking feeds.
+
+### 21 Dec 2021
+
+* *1 hour* Re-reading the lit to make sure objective was consistent.
+* *8 hours* Implemented state passing between peers such as the blockchain for each peer.
