@@ -1,12 +1,13 @@
 from blockchain import Block
 from time import time
+from multithreading import ProtectedList
 
 
 class Blockchain:
     """ Class used to contain the blockchain and associtated mining and integrity checks"""
 
     def __init__(self, target='0', miningWindow=60):
-        self.chain = []
+        self.chain = ProtectedList()
         self.target = target
         self.miningWindow = 60  # In seconds
 
@@ -32,14 +33,14 @@ class Blockchain:
 
         # 3) Check chain integrity of full chain
         previousBlock = self.chain[0]
-        for block in self.chain[1:]:
-            if not isinstance(block, Block):
-                return False
-            previousHash = previousBlock.generate_hash()
-            if previousHash != block.previousHash:
-                return False
-            previousBlock = block
-
+        with self.chain.lock:
+            for block in self.chain[1:]:
+                if not isinstance(block, Block):
+                    return False
+                previousHash = previousBlock.generate_hash()
+                if previousHash != block.previousHash:
+                    return False
+                previousBlock = block
         return True
 
     def mine_block(self, data):

@@ -213,3 +213,24 @@ def test_connect_10_peers_and_send_1_msg():
 
 def test_connect_100_peers_and_send_1_msg():
     assert(connect_x_peers_and_send_1_msg(100) == 100*(100-1))
+
+
+def test_blocking_on_connect():
+    """
+        This tests if the basic blocking function works when connecting between 2 peers
+    """
+    bob = PeerRouter(LOCAL_HOST, PORT_START)
+    alice = PeerRouter(LOCAL_HOST, PORT_START+1)
+
+    bob.start()
+    alice.start()
+
+    bob.connect(alice.hostname, alice.port, True)
+
+    tally = 0
+    for i in range(0, 10):
+        tally += 1
+
+    bob.stop()
+    alice.stop()
+    assert(tally == 10)

@@ -31,3 +31,8 @@ class Block:
         hash = hashlib.sha256()
         hash.update(blockJson.encode('ascii'))
         return hash.hexdigest()
+
+    def __eq__(self, other):
+        if (isinstance(other, Block)):
+            return self.__dict__ == other.__dict__
+        return False

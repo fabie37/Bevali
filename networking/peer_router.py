@@ -55,6 +55,12 @@ class PeerRouter:
             target=self.rxThread, name=f"RX Thread")
         self.threadManager.addThread(rxThread)
 
+        # Signal List
+        # This is used for any methods that need to be blocking
+        # These are indexed by the IP and port number you are wanting on
+        self.signalListLock = Lock()
+        self.signalList = {}
+
         # Data Buffer
         # This is different from rx as the RX handler only accepts messages
         # The message thread then handles the messages and adds any sent data to the databuffer
@@ -81,7 +87,7 @@ class PeerRouter:
         self.rxbuffer = Queue()
         return
 
-    def connect(self, ip, port):
+    def connect(self, ip, port, block=False):
         """ Connects to a peer.
             This process involves both the peer adding this router to thier peer list,
             and this router adding the peer to the peer list. 
@@ -94,6 +100,13 @@ class PeerRouter:
             if (toPeer not in self.peerAddressToSocket):
                 msg = ConnectMessage(toPeer, fromPeer)
                 self.txbuffer.put(msg)
+
+        # If blocking, wait for signal
+        if block:
+            self.addSignal(ip, port)
+            with self.signalList[(ip, port)]:
+                self.signalList[(ip, port)].wait()
+            self.removeSignal(ip, port)
 
     def getPeers(self, ip, port):
         """
@@ -132,6 +145,20 @@ class PeerRouter:
         # Right after, we will send them a message to send us their peer list
         getPeersMsg = GetPeerListMessage(toPeer, fromPeer)
         self.txbuffer.put(getPeersMsg)
+
+    def addSignal(self, ip, port):
+        """
+            Created a signal for blocking threads to wait on
+        """
+        with self.signalListLock:
+            self.signalList[(ip, port)] = Condition()
+
+    def removeSignal(self, ip, port):
+        """
+            Removes a signal for blocking threads to wait on
+        """
+        with self.signalListLock:
+            del self.signalList[(ip, port)]
 
     def send(self, ip, port, data):
         """
