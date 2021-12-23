@@ -155,3 +155,7 @@
 
 * *1 hour* Re-reading the lit to make sure objective was consistent.
 * *8 hours* Implemented state passing between peers such as the blockchain for each peer.
+
+### 23 Dec 2021
+
+* *1 hour* Quick update to consensus algorithm, perform validity checks on incoming blockchain and choose longest blockchain as main.

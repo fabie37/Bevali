@@ -1,8 +1,9 @@
 
 from threading import Lock
+from collections import UserList
 
 
-class ProtectedList(list):
+class ProtectedList(UserList):
     def __init__(self, initlist=None):
         super().__init__(initlist=initlist)
         self.lock = Lock()
@@ -16,3 +17,9 @@ class ProtectedList(list):
         with self.lock:
             item = super().remove(item)
         return item
+
+    def __len__(self):
+        length = 0
+        with self.lock:
+            length = super().__len__()
+        return length

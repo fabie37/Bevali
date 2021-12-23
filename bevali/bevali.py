@@ -34,6 +34,10 @@ class Bevali():
         self.blockchainLock = Lock()
         self.blockchain = Blockchain()
 
+        # Secondary Chains
+        self.secondaryChainsLock = Lock()
+        self.secondaryChains = []
+
         # Handles incoming data send from other peers from the router
         self.handler = DataHandler(self.router.databuffer)
 
@@ -99,8 +103,18 @@ class Bevali():
         for block in blockchain.chain:
             newChain.add_block(block)
 
-        with self.blockchainLock:
-            self.blockchain = newChain
+        # Check incoming chain is valid
+        if newChain.check_integrity():
+            with self.blockchainLock:
+                # if new chain is longer than old chain, make it the new chain
+                if len(self.blockchain.chain) < len(newChain.chain):
+                    oldChain = self.blockchain
+                    self.blockchain = newChain
+                    with self.secondaryChainsLock:
+                        self.secondaryChains.append(oldChain)
+                else:
+                    with self.secondaryChainsLock:
+                        self.secondaryChains.append(newChain)
 
     def processingThread(self, _thread):
         try:
