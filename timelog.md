@@ -159,3 +159,19 @@
 ### 23 Dec 2021
 
 * *1 hour* Quick update to consensus algorithm, perform validity checks on incoming blockchain and choose longest blockchain as main.
+
+## Week 13
+
+### 26 Dec 2021
+
+* *1 hour* Another update to consesnsus algorith, working out how to pass blockchain state to other peers and create tests for it.
+
+## Week 14
+
+### 05 Jan 2022
+
+* *3 hours* More background research and writing down notes.
+* *1 hours* Tested python remote code execution using exec method. 
+
+### 09 Jan 2022
+

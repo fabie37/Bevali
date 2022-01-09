@@ -1,3 +1,4 @@
+
 class Message:
     """ Parent Class for sending messages """
 
@@ -36,6 +37,9 @@ class ConnectMessage(Message):
 
                     # For Socket Listener
                     peerRouter.socketList.append(self.sourceSocket)
+
+                    # Alert Application new peer connected
+                    peerRouter.newPeerQueue.put(self.fromPeer)
                 else:
                     print("Socket already here!")
 
@@ -74,6 +78,8 @@ class PeerRequestMessage(Message):
                 toPeer = peerAddress
                 fromPeer = (peerRouter.hostname, peerRouter.port)
                 newPeer = self.fromPeer
+
+                # Tell my peers to connect to new peer
                 updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
                 peerRouter.txbuffer.put(updateMsg)
 

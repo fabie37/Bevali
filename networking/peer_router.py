@@ -60,6 +60,11 @@ class PeerRouter:
         self.signalListLock = Lock()
         self.signalList = {}
 
+        # New Peer Added Signal
+        # Used to alert other applications when a new peer has connected to you
+        self.newPeerSignal = Condition()
+        self.newPeerQueue = Queue()
+
         # Data Buffer
         # This is different from rx as the RX handler only accepts messages
         # The message thread then handles the messages and adds any sent data to the databuffer
@@ -86,7 +91,7 @@ class PeerRouter:
         self.rxbuffer = Queue()
         return
 
-    def connect(self, ip, port, block=False):
+    def connect(self, ip, port, block=False, duration=60):
         """ Connects to a peer.
             This process involves both the peer adding this router to thier peer list,
             and this router adding the peer to the peer list. 
@@ -102,10 +107,14 @@ class PeerRouter:
 
         # If blocking, wait for signal
         if block:
-            self.addSignal(ip, port)
-            with self.signalList[(ip, port)]:
-                self.signalList[(ip, port)].wait()
-            self.removeSignal(ip, port)
+            try:
+                self.addSignal(ip, port)
+                with self.signalList[(ip, port)]:
+                    self.signalList[(ip, port)].wait(duration)
+            except Exception:
+                serverLogger.exception("Peer timed out!")
+            finally:
+                self.removeSignal(ip, port)
 
     def getPeers(self, ip, port):
         """
@@ -117,7 +126,7 @@ class PeerRouter:
         toPeer = (ip, port)
 
         # First connect
-        self.connect(ip, port)
+        self.connect(ip, port, block=True, duration=60)
 
         # Then send peer request
         requestMsg = PeerRequestMessage(toPeer, fromPeer)

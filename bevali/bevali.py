@@ -43,9 +43,17 @@ class Bevali():
 
         # Handles all threads concerning this class
         self.threadManager = ThreadManager()
+
+        # Handles Incomming Data Messages
         procThread = ManagedThread(
             target=self.processingThread, name="Processing Thread")
         self.threadManager.addThread(procThread)
+
+        # Handles When new peers connect
+        peerWatcherThread = ManagedThread(
+            target=self.peerWatcherThread, name="Peer Watcher"
+        )
+        self.threadManager.addThread(peerWatcherThread)
 
         # Defines where to tell the data handler to send incoming data to
         poolSink = PoolSink(self.pool)
@@ -87,7 +95,7 @@ class Bevali():
     def connectToNode(self, ip, port):
         """ Connects to an existing node in blockchain """
         # 1. Connect to node in peer
-        self.router.connect(ip, port, block=True)
+        self.router.getPeers(ip, port)
 
         # 2. Get blockchain from peer
         blockchainReq = BlockchainRequestMessage(self.ip, self.port)
@@ -97,7 +105,11 @@ class Bevali():
         self.handler.waitOnData((ip, port), Blockchain, 60)
 
     def processBlockchain(self, blockchain):
-        """ Proocesses a new blockchain incomming """
+        """ Processes a new blockchain incomming """
+        # if blockchain is empty, reject it
+        if len(blockchain.chain) == 0:
+            return
+
         # Create a copy
         newChain = Blockchain(blockchain.target, blockchain.miningWindow)
         for block in blockchain.chain:
@@ -110,8 +122,11 @@ class Bevali():
                 if len(self.blockchain.chain) < len(newChain.chain):
                     oldChain = self.blockchain
                     self.blockchain = newChain
-                    with self.secondaryChainsLock:
-                        self.secondaryChains.append(oldChain)
+
+                    # Make sure our old chain isn't empty
+                    if len(oldChain.chain) != 0:
+                        with self.secondaryChainsLock:              # Potential For dead lock - watch out
+                            self.secondaryChains.append(oldChain)
                 else:
                     with self.secondaryChainsLock:
                         self.secondaryChains.append(newChain)
@@ -145,6 +160,24 @@ class Bevali():
 
                 except Exception:
                     # No blockchain available
+                    pass
+
+        except Exception:
+            with _thread["lock"]:
+                _thread["status"] = ThreadStatus.ERROR
+
+    def peerWatcherThread(self, _thread):
+        try:
+            while _thread["status"] != ThreadStatus.STOPPING:
+                try:
+                    newPeer = self.router.newPeerQueue.get(
+                        block=True, timeout=5)
+                    blockchainReq = BlockchainRequestMessage(
+                        self.ip, self.port)
+                    self.router.send(newPeer[0], newPeer[1], blockchainReq)
+
+                except Exception:
+                    # No new peers
                     pass
 
         except Exception:

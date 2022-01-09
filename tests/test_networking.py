@@ -1,6 +1,7 @@
 """
     This file contains tests for the class 'Server' contained within the 'Networking' module'
 """
+import os
 from time import sleep
 from math import log
 from networking import PeerRouter
@@ -199,20 +200,28 @@ def connect_x_peers_and_send_1_msg(x):
     return len(msgs)
 
 
+def summation_i(i):
+    return (i**2 + i) / 2
+
+
 def test_connect_2_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(2) == 2 * (2 - 1))
+    result = summation_i(2 - 2) + 2 * (2 - 1)
+    assert(connect_x_peers_and_send_1_msg(2) == result)
 
 
 def test_connect_3_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(3) == 3 * (3 - 1))
+    result = summation_i(3 - 2) + 3 * (3 - 1)
+    assert(connect_x_peers_and_send_1_msg(3) == result)
 
 
 def test_connect_10_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(10) == 10 * (10 - 1))
+    result = summation_i(10 - 2) + 10 * (10 - 1)
+    assert(connect_x_peers_and_send_1_msg(10) == result)
 
 
 def test_connect_100_peers_and_send_1_msg():
-    assert(connect_x_peers_and_send_1_msg(100) == 100 * (100 - 1))
+    result = summation_i(100 - 2) + 100 * (100 - 1)
+    assert(connect_x_peers_and_send_1_msg(100) == result)
 
 
 def test_blocking_on_connect():
@@ -234,3 +243,34 @@ def test_blocking_on_connect():
     bob.stop()
     alice.stop()
     assert(tally == 10)
+
+
+def test_remote_code_execution():
+    """
+        Basic Test to see if remote peer will execute code as a string
+    """
+    def sub(a):
+        return a - 1
+    code = "def add(a,b):\n\treturn a+b\na = 5\nb = 5\nrtn = add(sub(a),b)"
+
+    bob = PeerRouter(LOCAL_HOST, PORT_START)
+    alice = PeerRouter(LOCAL_HOST, PORT_START + 1)
+
+    bob.start()
+    alice.start()
+
+    bob.connect(alice.hostname, alice.port, block=True)
+    bob.broadcast(code)
+    sleep(1)
+    data = alice.databuffer.get()
+
+    code_locals = {}
+
+    exec(data[1], {"sub": sub}, code_locals)
+
+    # Globals: things we put into exec
+    # Locals:  things we get from exec
+
+    bob.stop()
+    alice.stop()
+    assert(code_locals['rtn'] == 9)
