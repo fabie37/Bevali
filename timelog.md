@@ -175,3 +175,4 @@
 
 ### 09 Jan 2022
 
+* *3 hours* Added automatic handling for new connected peers to request applications state from them.

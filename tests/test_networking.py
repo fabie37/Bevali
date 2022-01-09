@@ -1,7 +1,6 @@
 """
     This file contains tests for the class 'Server' contained within the 'Networking' module'
 """
-import os
 from time import sleep
 from math import log
 from networking import PeerRouter
