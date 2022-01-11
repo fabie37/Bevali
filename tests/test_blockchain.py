@@ -5,51 +5,60 @@ from blockchain import Blockchain
 from blockchain import Block
 
 
-def test_blockchain_integrity_valid():
+def create_blockchain():
     genisusBlock = Block()
-    firstBlock = Block(1, genisusBlock.generate_hash())
-    secondBlock = Block(2, firstBlock.generate_hash())
-    thirdBlock = Block(3, secondBlock.generate_hash())
 
-    blockchain = Blockchain()
+    blockchain = Blockchain(target='0')
     blockchain.add_block(genisusBlock)
-    blockchain.add_block(firstBlock)
-    blockchain.add_block(secondBlock)
-    blockchain.add_block(thirdBlock)
 
+    for x in range(0, 5):
+        block = blockchain.mine_block("nothing")
+        blockchain.add_block(block)
+
+    return blockchain
+
+
+def test_blockchain_integrity_valid():
+    blockchain = create_blockchain()
     assert(blockchain.check_integrity())
 
 
 def test_blockchain_integrity_invalid():
-    genisusBlock = Block()
-    firstBlock = Block(1, genisusBlock.generate_hash())
-    secondBlock = Block(2, firstBlock.generate_hash())
-    thirdBlock = Block(3, secondBlock.generate_hash())
-
-    blockchain = Blockchain()
-    blockchain.add_block(genisusBlock)
-    blockchain.add_block(firstBlock)
-    blockchain.add_block(secondBlock)
-    blockchain.add_block(thirdBlock)
-
+    blockchain = create_blockchain()
     blockchain.chain[1].nonce = 99
 
     assert(not blockchain.check_integrity())
 
 
 def test_blockchain_proof_of_work():
-    genisusBlock = Block()
-    firstBlock = Block(1, genisusBlock.generate_hash())
-    secondBlock = Block(2, firstBlock.generate_hash())
-    thirdBlock = Block(3, secondBlock.generate_hash())
-
-    blockchain = Blockchain(target='0')
-    blockchain.add_block(genisusBlock)
-    blockchain.add_block(firstBlock)
-    blockchain.add_block(secondBlock)
-    blockchain.add_block(thirdBlock)
+    blockchain = create_blockchain()
 
     data = ["Test String", "Test Data"]
     minedBlock = blockchain.mine_block(data)
 
     assert(minedBlock.generate_hash().startswith(blockchain.target))
+
+
+def test_block_in_chain():
+    blockchain = create_blockchain()
+    secondBlock = blockchain.chain[2]
+    assert(blockchain.is_block_in_chain(secondBlock))
+
+
+def test_block_belongs_to_chain():
+    blockchain = create_blockchain()
+    block = blockchain.mine_block("nothing")
+    assert(blockchain.block_belongs(block))
+
+
+def test_blockchain_is_equal():
+    blockchain = create_blockchain()
+    blockchain2 = create_blockchain()
+    assert(blockchain.is_equal(blockchain2))
+
+
+def test_blockchain_is_not_equal():
+    blockchain = create_blockchain()
+    blockchain2 = create_blockchain()
+    blockchain2.chain[2].nonce = 99
+    assert(not blockchain.is_equal(blockchain2))

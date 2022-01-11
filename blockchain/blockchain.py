@@ -43,6 +43,46 @@ class Blockchain:
                 previousBlock = block
         return True
 
+    def is_equal(self, bc):
+        """ Checks if this blockchain is the same as another """
+        if len(bc.chain) != len(self.chain):
+            return False
+
+        for index, block in enumerate(self.chain):
+            thisHash = block.generate_hash()
+            blockHash = bc.chain[index].generate_hash()
+            if not thisHash == blockHash:
+                return False
+
+        return True
+
+    def block_valid(self, block):
+        """ Check if blocks hash is valid """
+        # Check block is valid
+        if not block.generate_hash().startswith(self.target):
+            return False
+
+        return True
+
+    def is_block_in_chain(self, block):
+        """ Checks if a block is in chain """
+        for b in self.chain:
+            if b.generate_hash() == block.generate_hash():
+                return True
+        return False
+
+    def block_belongs(self, block):
+        """ Checks if block belongs in blockchain"""
+        # Check block is valid
+        if not self.block_valid(block):
+            return False
+
+        # Check if previous hash matches last block's hash
+        if self.chain[-1].generate_hash() != block.previousHash:
+            return False
+
+        return True
+
     def mine_block(self, data):
         """ Method to do PoW algorithm and return a valid block """
 
