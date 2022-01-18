@@ -19,7 +19,7 @@ def connect_x_peers_together(x):
         for peer in peer_list[z + 1:]:
             peer_list[z].connect(peer.hostname, peer.port)
 
-    sleep(log(x) * 2)
+    sleep(log(x) * 3)
 
     connected_peers_per_peer = []
     for peer in peer_list:
@@ -204,22 +204,22 @@ def summation_i(i):
 
 
 def test_connect_2_peers_and_send_1_msg():
-    result = summation_i(2 - 2) + 2 * (2 - 1)
+    result = 2 * (2 - 1)
     assert(connect_x_peers_and_send_1_msg(2) == result)
 
 
 def test_connect_3_peers_and_send_1_msg():
-    result = summation_i(3 - 2) + 3 * (3 - 1)
+    result = 3 * (3 - 1)
     assert(connect_x_peers_and_send_1_msg(3) == result)
 
 
 def test_connect_10_peers_and_send_1_msg():
-    result = summation_i(10 - 2) + 10 * (10 - 1)
+    result = 10 * (10 - 1)
     assert(connect_x_peers_and_send_1_msg(10) == result)
 
 
 def test_connect_100_peers_and_send_1_msg():
-    result = summation_i(100 - 2) + 100 * (100 - 1)
+    result = 100 * (100 - 1)
     assert(connect_x_peers_and_send_1_msg(100) == result)
 
 

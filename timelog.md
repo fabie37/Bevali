@@ -176,3 +176,8 @@
 ### 09 Jan 2022
 
 * *3 hours* Added automatic handling for new connected peers to request applications state from them.
+
+## week 15
+
+### 11 Jan 2022
+* *4 hours* Added mine functionality to propogate newly mined blocks through the network. Need to do more testing.
