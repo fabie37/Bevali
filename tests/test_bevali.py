@@ -2,8 +2,11 @@
 from bevali import Bevali
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
+from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction
 from time import sleep
 from math import log
+import os
+
 
 BLOCKCHAIN_SIZE = 10
 
@@ -166,3 +169,119 @@ def test_mined_block_propogation():
     carol.stop()
 
     assert(aliceLength == 12 and bobLength == 12 and carolLength == 12)
+
+
+def test_send_transaction():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+
+    transaction = Transaction("123", data={"hello": 1234})
+    contract = ContractCreateTransaction("123", "234", "code", {1: 123}, {
+                                         1: 123}, data={"hello": 1234})
+    invoke = ContractInvokeTransaction("123", "123", data="Hello")
+    update = ContractUpdateTranscation("123", "234", {1: 123})
+
+    alice.connectToNode(bob.ip, bob.port)
+    carol.connectToNode(bob.ip, bob.port)
+
+    sleep(2)
+
+    bob.sendTransaction(transaction)
+    bob.sendTransaction(contract)
+    bob.sendTransaction(invoke)
+    bob.sendTransaction(update)
+
+    sleep(2)
+
+    size_of_alice_pool = len(alice.pool)
+    size_of_carol_pool = len(carol.pool)
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+
+    assert(size_of_alice_pool == 4 and size_of_carol_pool == 4)
+
+
+def test_transaction_mined():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+    sample_blockchain(bob)
+
+    # Bob will be a minner
+    bob.start_minning()
+
+    alice.connectToNode(bob.ip, bob.port)
+    carol.connectToNode(bob.ip, bob.port)
+    sleep(3)
+
+    # Alice will send the transaction to her peers
+    transaction = Transaction("123", data={"hello": 1234})
+    alice.sendTransaction(transaction)
+    sleep(6)
+
+    # By this point bob should have mined the block and sent it to his peers
+    alice_chain_len = len(alice.blockchain.chain)
+    bob_chain_len = len(bob.blockchain.chain)
+    carol_chain_len = len(carol.blockchain.chain)
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+
+    assert(alice_chain_len == BLOCKCHAIN_SIZE + 2 and bob_chain_len ==
+           BLOCKCHAIN_SIZE + 2 and carol_chain_len == BLOCKCHAIN_SIZE + 2)
+
+
+def test_contract_executed():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+    bob.createNewChain()
+
+    # Bob will be a minner
+    bob.start_minning()
+
+    alice.connectToNode(bob.ip, bob.port)
+    carol.connectToNode(bob.ip, bob.port)
+    sleep(3)
+
+    # Alice will send the transaction to her peers
+    code = ""
+    cwd = os.getcwd() + "\\tests\\"
+    with open(cwd + "contract_1.py", "r") as f:
+        code = ''.join(f.readlines())
+    memory = {}
+    state = {}
+    transaction = ContractCreateTransaction("123", "246", code, memory, state)
+    alice.sendTransaction(transaction)
+    sleep(5)
+    invoke = ContractInvokeTransaction("123", "246")
+    alice.sendTransaction(invoke)
+    sleep(9)
+
+    # By this point bob should have mined the block and sent it to his peers
+    aliceT = alice.blockchain.chain[-1].data[1]
+    bobT = bob.blockchain.chain[-1].data[1]
+    carolT = carol.blockchain.chain[-1].data[1]
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+
+    assert(isinstance(aliceT, Transaction) and isinstance(
+        bobT, Transaction) and isinstance(carolT, Transaction))

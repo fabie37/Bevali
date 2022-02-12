@@ -1,4 +1,5 @@
 
+from cmath import exp
 from queue import Queue
 from multithreading.managed_thread import ManagedThread
 from networking import PeerRouter
@@ -8,6 +9,8 @@ from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
 from threading import Lock
 from blockchain import Blockchain, Block
+
+TRANSACTIONS_TO_MINE = 5
 
 
 class Bevali():
@@ -59,6 +62,14 @@ class Bevali():
         )
         self.threadManager.addThread(peerWatcherThread)
 
+        # Handles If this client wishes to mine blocks
+        minningThread = ManagedThread(
+            target=self.minningThread, name="Minning Thread"
+        )
+        self.minningManager = ThreadManager()
+        self.minningManager.addThread(minningThread)
+        self.isMinning = False
+
         # Defines where to tell the data handler to send incoming data to
         poolSink = PoolSink(self.pool)
         blockSink = BlockSink(self.blocks)
@@ -86,15 +97,31 @@ class Bevali():
         """
         Stops all related threads
         """
+        self.stop_minning()
         self.router.stop()
         self.handler.stop()
         self.threadManager.stopThreads()
+
+    def start_minning(self):
+        """
+        Start this client minning
+        """
+        self.isMinning = True
+        self.minningManager.startThreads()
+
+    def stop_minning(self):
+        if self.isMinning:
+            self.minningManager.stopThreads()
+            self.isMinning = False
 
     def createNewChain(self):
         """ Method to created a new chain """
         firstBlock = Block()
         self.blockchain = Blockchain()
         self.blockchain.add_block(firstBlock)
+
+    def sendTransaction(self, transaction):
+        self.router.broadcast(transaction)
 
     def _mine(self, data):
         """ Method to mine a block """
@@ -237,6 +264,39 @@ class Bevali():
                     # No blockchain available
                     pass
 
+        except Exception:
+            with _thread["lock"]:
+                _thread["status"] = ThreadStatus.ERROR
+
+    def minningThread(self, _thread):
+        print("Starting to mine...")
+        try:
+            while _thread["status"] != ThreadStatus.STOPPING:
+
+                try:
+                    # Before minning, get the transactions from transaction pool
+                    poolTxs = self.pool[:TRANSACTIONS_TO_MINE]
+
+                    if poolTxs:
+                        transactions = []
+                        # Then make sure to run any contract code
+                        with self.blockchainLock:
+                            for transaction in poolTxs:
+                                returnedTxs = transaction.exec(self.blockchain)
+                                if isinstance(returnedTxs, list):
+                                    transactions = [
+                                        *transactions, *returnedTxs]
+                                else:
+                                    transactions = [*transactions, returnedTxs]
+
+                        # Once any contract code has been ran, mine the data and remove transactions from pool
+                        isMined = self._mine(transactions)
+                        if isMined:
+                            for tx in poolTxs:
+                                self.pool.remove(tx)
+                except (Exception):
+                    # Something went wrong in minning, just try again
+                    pass
         except Exception:
             with _thread["lock"]:
                 _thread["status"] = ThreadStatus.ERROR

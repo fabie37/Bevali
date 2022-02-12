@@ -1,5 +1,6 @@
 
 from blockchain import Blockchain, Block
+from transactions import Transaction
 from datahandler import DataRequestMessages
 
 
@@ -42,7 +43,7 @@ class BlockChainSink(DataSink):
 
 class PoolSink(DataSink):
     def __init__(self, dataSink):
-        super().__init__(object, dataSink)
+        super().__init__(Transaction, dataSink)
 
     def append(self, data):
         self.dataSink.append(data)

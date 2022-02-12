@@ -18,6 +18,16 @@ class ProtectedList(UserList):
             item = super().remove(item)
         return item
 
+    def take(self, num=1):
+        items = []
+        with self.lock:
+            for _ in range(num):
+                if len(self) > 0:
+                    items.append(super().pop(0))
+                else:
+                    break
+        return items
+
     def __len__(self):
         length = 0
         with self.lock:

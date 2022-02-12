@@ -2,6 +2,8 @@ import hashlib
 import json
 import time
 
+from transactions.transaction import Transaction
+
 
 class Block:
     """ Class to encapsulate the blocks within the blockchain. """
@@ -22,11 +24,23 @@ class Block:
         """ Generates a hash of the block containing:
             [blockNumber, previousHash, nonce, data, timestamp]
         """
+        datajson = []
+        if isinstance(self.data, list):
+            for elem in self.data:
+                if isinstance(elem, Transaction) or issubclass(type(elem), Transaction):
+                    datajson.append(elem.jsonize())
+                else:
+                    datajson.append(elem)
+        elif isinstance(self.data, Transaction) or issubclass(type(self.data), Transaction):
+            datajson.append(self.data.jsonize())
+        else:
+            datajson.append(self.data)
+
         blockObject = {
             "blockNumber": self.blockNumber,
             "previousHash": self.previousHash,
             "nonce": self.nonce,
-            "data": self.data,
+            "data": datajson,
             "timestamp": self.timestamp
         }
         blockJson = json.dumps(blockObject)
