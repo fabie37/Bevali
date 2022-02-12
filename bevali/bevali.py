@@ -1,5 +1,4 @@
 
-from cmath import exp
 from queue import Queue
 from multithreading.managed_thread import ManagedThread
 from networking import PeerRouter
@@ -9,6 +8,7 @@ from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
 from threading import Lock
 from blockchain import Blockchain, Block
+from transactions import Transaction
 
 TRANSACTIONS_TO_MINE = 5
 
@@ -162,13 +162,20 @@ class Bevali():
             if not self.blockchain.block_valid(block):
                 return False
 
-        # 2) See if block belongs on main chain
+        # 2) Check to see if transactions are valid
+        with self.blockchainLock:
+            for tx in block.data:
+                if isinstance(tx, Transaction) or issubclass(type(tx), Transaction):
+                    if not tx.validate(self.blockchain, block):
+                        return False
+
+        # 3) See if block belongs on main chain
         with self.blockchainLock:
             if self.blockchain.block_belongs(block):
                 self.blockchain.add_block(block)
                 return False
 
-        # 3) If not here then it might be in a secondary chain
+        # 4) If not here then it might be in a secondary chain
         checkReplacement = False
         blockchainContender = None
         with self.secondaryChainsLock:
@@ -178,7 +185,7 @@ class Bevali():
                     checkReplacement = True
                     blockchainContender = blockchain
 
-        # 4) Check if main chain needs replaced
+        # 5) Check if main chain needs replaced
         # It shouldn't matter that it's not protected here,
         # This is the only time we ever edit a secondary chain directly
         if checkReplacement:
@@ -189,7 +196,7 @@ class Bevali():
             with self.secondaryChainsLock:
                 self.secondaryChains.remove(blockchainContender)
 
-        # 5) Since there is not place for block to go, call it an orphan.
+        # 6) Since there is not place for block to go, call it an orphan.
         with self.orphanBlocksLock:
             self.orphanBlocks.append(block)
 

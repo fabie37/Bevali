@@ -27,6 +27,14 @@ class Transaction():
         """
         return self
 
+    def validate(self, blockchain, block):
+        """
+            Used for when peers need to validate 
+            a transaction when a new block comes
+            in.
+        """
+        return True
+
     def jsonize(self):
         """
             Used for when creating a hash of the block with
@@ -55,6 +63,16 @@ class ContractCreateTransaction(Transaction):
 
     def exec(self, blockchain=None):
         return self
+
+    def validate(self, blockchain, block):
+        """
+            There shouldn't be any need to
+            validate a contract, other
+            than to parse it to see 
+            if the code is correct.
+            Beyond the scope.
+        """
+        return True
 
     def jsonize(self):
         """
@@ -86,8 +104,16 @@ class ContractUpdateTranscation(Transaction):
     def exec(self, blockchain):
         return self
 
-    def validate(self, blockchain, surrounding_transactions):
-        pass
+    def validate(self, blockchain, block):
+        """
+            Updates to state should only happen when an invocation
+            made the update. 
+            Find the invocation, run it and make sure it's returns
+            this.
+
+            Error with circular dependances for the time being, we'll leave this.
+        """
+        return True
 
     def jsonize(self):
         """
@@ -113,7 +139,7 @@ class ContractInvokeTransaction(Transaction):
         super().__init__(creator, data)
         self.contract_id = contract_id
 
-    def exec(self, blockchain):
+    def exec(self, blockchain, blockNumber=None):
         try:
             # This will run the code found given contract id
 
@@ -124,7 +150,8 @@ class ContractInvokeTransaction(Transaction):
 
             # 2. Find contracts latest state
             state_keys = contract.state.keys()
-            current_state = findState(blockchain, self.contract_id, state_keys)
+            current_state = findState(
+                blockchain, self.contract_id, state_keys, blockNumber)
 
             # 3. Run the code!
 
@@ -171,8 +198,43 @@ class ContractInvokeTransaction(Transaction):
             except Exception as exc:
                 print(exc)
                 return self
-        except (Exception):
+        except Exception as exc:
+            print(exc)
             return None
+
+    def validate(self, blockchain, block):
+        """
+            Basically re-run the code to see if you get the same result.
+
+            UPDATE TO FUTURE SELF:
+                Make sure to double check this
+                Nothing here to stop someone from just
+                adding a transaction that didn't come 
+                from a contract.
+        """
+        try:
+            blocknumber = block.blockNumber
+            computedTransactions = self.exec(blockchain, blocknumber)
+            jsonTransactions = [tx.jsonize() for tx in computedTransactions]
+
+            # Wipe timestamps
+            for tx in jsonTransactions:
+                tx["timestamp"] = None
+
+            blockdata = []
+            for tx in block.data:
+                cpy = dict(tx.jsonize())
+                cpy["timestamp"] = None
+                blockdata.append(cpy)
+
+            # Check that our computed results are in block
+            for computedTx in jsonTransactions:
+                if computedTx not in blockdata:
+                    return False
+            return True
+
+        except Exception:
+            return False
 
     def jsonize(self):
         transaction = super().jsonize()
@@ -201,10 +263,16 @@ def findContract(blockchain, contract_id):
     return None
 
 
-def findState(blockchain, contract_id, state_keys):
+def findState(blockchain, contract_id, state_keys, blocknumber=None):
     state = {}
+
+    if blocknumber:
+        chain = blockchain.chain[:blocknumber]
+    else:
+        chain = blockchain.chain
+
     if blockchain and contract_id and state_keys:
-        for block in reversed(blockchain.chain):
+        for block in reversed(chain):
             for transaction in block.data:
                 # Is transaction in chain is apart of the chain, get the state
                 if (isinstance(transaction, ContractUpdateTranscation) or isinstance(transaction, ContractCreateTransaction)) and transaction.contract_id == contract_id:

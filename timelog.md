@@ -177,7 +177,30 @@
 
 * *3 hours* Added automatic handling for new connected peers to request applications state from them.
 
-## week 15
+## Week 15
 
 ### 11 Jan 2022
 * *4 hours* Added mine functionality to propogate newly mined blocks through the network. Need to do more testing.
+
+## Week 16
+
+### 18 Jan 2022
+* *8 hours* started writing motivation for disseration.
+
+## Week 17
+
+## Week 18
+
+### 5 Feb 2022
+* *10 hours* started writting background for disseration.
+
+### 6 Feb 2022
+* *5 hours* updating more on background for more info
+
+## Week 19
+
+### 9 Feb 2022
+* *6 hours* Spent more time writting the disseration.
+
+### 12 Feb 2022
+* 10 hours* Implemented most of the smart contract functionality. Just need to implement peer validation.

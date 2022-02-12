@@ -285,3 +285,50 @@ def test_contract_executed():
 
     assert(isinstance(aliceT, Transaction) and isinstance(
         bobT, Transaction) and isinstance(carolT, Transaction))
+
+
+def test_contract_state_updated():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+    bob.createNewChain()
+
+    # Bob will be a minner
+    bob.start_minning()
+
+    alice.connectToNode(bob.ip, bob.port)
+    carol.connectToNode(bob.ip, bob.port)
+    sleep(3)
+
+    # Alice will send the transaction to her peers
+    code = ""
+    cwd = os.getcwd() + "\\tests\\"
+    with open(cwd + "contract_2.py", "r") as f:
+        code = ''.join(f.readlines())
+    memory = {}
+    state = {"updated": False}
+    transaction = ContractCreateTransaction("123", "246", code, memory, state)
+    alice.sendTransaction(transaction)
+    sleep(5)
+    update = ContractUpdateTranscation("123", "246", {"updated": True})
+    carol.sendTransaction(update)
+    sleep(5)
+    invoke = ContractInvokeTransaction("123", "246")
+    alice.sendTransaction(invoke)
+    sleep(9)
+
+    # By this point bob should have mined the block and sent it to his peers
+    aliceT = alice.blockchain.chain[-1].data[1]
+    bobT = bob.blockchain.chain[-1].data[1]
+    carolT = carol.blockchain.chain[-1].data[1]
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+
+    assert(isinstance(aliceT, Transaction) and isinstance(
+        bobT, Transaction) and isinstance(carolT, Transaction))
