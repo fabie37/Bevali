@@ -72,7 +72,7 @@ class DataHandler:
                         self.signalList[key].notify()
                 except Exception:
                     # No threads waiting for this data,
-                    print("No such signal exists!")
+                    # print("No such signal exists!")
                     pass
             except Exception as e:
                 print(e)

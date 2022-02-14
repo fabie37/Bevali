@@ -160,7 +160,7 @@ class ContractInvokeTransaction(Transaction):
                 "Transaction": Transaction,
                 "ContractCreateTransaction": ContractCreateTransaction,
                 "ContractInvokeTransaction": ContractInvokeTransaction,
-                "ContractUpdateTranscation": ContractUpdateTranscation
+                "ContractUpdateTransaction": ContractUpdateTranscation
             }
 
             # Locals: This contains variables that are assigned in the code
@@ -175,7 +175,8 @@ class ContractInvokeTransaction(Transaction):
                 "creator": contract.creator,
                 "invoker": self.creator,
                 "lib": lib,
-                "timestamp": self.timestamp
+                "timestamp": self.timestamp,
+                "data": self.data
 
             }
             code = contract.code

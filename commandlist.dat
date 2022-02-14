@@ -1,0 +1,9 @@
+{ 
+"commands" : [
+    {"name": "", "cmd": "wait", "data": 15},
+    {"name": "Bob", "cmd": "mine", "data": {}},
+    {"name": "Alice", "cmd": "mine", "data": {}},
+    {"name": "Carol", "cmd": "mine", "data": {}}
+],
+"clients" : ["Bob", "Alice", "Carol"]
+}
