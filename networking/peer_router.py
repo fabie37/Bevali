@@ -190,11 +190,11 @@ class PeerRouter:
             Broadcasts data to all other peers in network some data
         """
         fromPeer = (self.hostname, self.port)
-
-        for peerAddress in self.peerAddressToSocket.keys():
-            toPeer = peerAddress
-            dataMsg = DataMessage(toPeer, fromPeer, data)
-            self.txbuffer.put(dataMsg)
+        with self.peerLock:
+            for peerAddress in self.peerAddressToSocket.keys():
+                toPeer = peerAddress
+                dataMsg = DataMessage(toPeer, fromPeer, data)
+                self.txbuffer.put(dataMsg)
 
     def recv(self, peer_socket):
         """ Recieve data from a peer socket """

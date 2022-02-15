@@ -203,4 +203,10 @@
 * *6 hours* Spent more time writting the disseration.
 
 ### 12 Feb 2022
-* 10 hours* Implemented most of the smart contract functionality. Just need to implement peer validation.
+* *10 hours* Implemented most of the smart contract functionality. Just need to implement peer validation.
+
+## Week 20
+
+### 14 Feb
+* *4 hours* Writting dissertation design phase.
+* *7 hours* Designing testing suite to gather metrics for evaluation. 

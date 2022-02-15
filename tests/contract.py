@@ -114,7 +114,7 @@ transactions = []
 
 def createLog(type, invoker, data, contract_id):
     return lib["Transaction"](contract_id, {
-        "type": "log",
+        "type": type,
         "logger": invoker,
         "action": data["action"],
         "to": data["to"],

@@ -121,6 +121,7 @@ class Bevali():
         self.blockchain.add_block(firstBlock)
 
     def sendTransaction(self, transaction):
+        self.pool.append(transaction)
         self.router.broadcast(transaction)
 
     def _mine(self, data):
@@ -247,7 +248,7 @@ class Bevali():
 
                 # 1. Process a requests
                 try:
-                    request = self.requests.get(block=True, timeout=1)
+                    request = self.requests.get(block=True, timeout=0.1)
                     request.open(self)
                 except Exception:
                     # No requests available
@@ -256,6 +257,7 @@ class Bevali():
                 # 2. Process a incoming blocks
                 try:
                     block = self.blocks.get(block=True, timeout=1)
+                    self.blocks.task_done()
                     self.processBlock(block)
                 except Exception:
                     # No blocks available
@@ -264,7 +266,7 @@ class Bevali():
                 # 3. Process a blockchain
                 try:
                     # Get blockchain
-                    blockchain = self.blockchains.get(block=True, timeout=1)
+                    blockchain = self.blockchains.get(block=True, timeout=0.1)
                     self.processBlockchain(blockchain)
 
                 except Exception:

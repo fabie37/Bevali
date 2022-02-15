@@ -52,7 +52,7 @@ class DataHandler:
         """ This Thread handles where to send data from source to sink """
         while _thread["status"] != ThreadStatus.STOPPING:
             try:
-                letter = self.dataSource.get(block=True, timeout=3)
+                letter = self.dataSource.get(block=True, timeout=5)
                 fromAddress = letter[0]
                 data = letter[1]
 
@@ -74,8 +74,9 @@ class DataHandler:
                     # No threads waiting for this data,
                     # print("No such signal exists!")
                     pass
-            except Exception as e:
-                print(e)
+            except Exception:
+                pass
+                # print(e)
 
     def start(self):
         self.threadManager.startThreads()
