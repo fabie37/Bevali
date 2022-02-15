@@ -10,7 +10,6 @@ from multithreading import ManagedThread
 from multithreading import ThreadStatus
 from threading import Lock
 from threading import Condition
-from time import sleep
 
 from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message, PeerRequestMessage
 
@@ -41,19 +40,30 @@ class PeerRouter:
         # TX Buffer handler
         self.txbuffer = Queue()
         txThread = ManagedThread(
-            target=self.txThread, name=f"TX Thread")
+            target=self.txThread, name="TX Thread")
         self.threadManager.addThread(txThread)
 
         # Message Handler
         msgThread = ManagedThread(
-            target=self.msgThread, name=f"Message Thread")
+            target=self.msgThread, name="Message Thread")
         self.threadManager.addThread(msgThread)
 
         # RX Buffer handler
         self.rxbuffer = Queue()
         rxThread = ManagedThread(
-            target=self.rxThread, name=f"RX Thread")
+            target=self.rxThread, name="RX Thread")
         self.threadManager.addThread(rxThread)
+
+        # Signal List
+        # This is used for any methods that need to be blocking
+        # These are indexed by the IP and port number you are wanting on
+        self.signalListLock = Lock()
+        self.signalList = {}
+
+        # New Peer Added Signal
+        # Used to alert other applications when a new peer has connected to you
+        self.newPeerSignal = Condition()
+        self.newPeerQueue = Queue()
 
         # Data Buffer
         # This is different from rx as the RX handler only accepts messages
@@ -81,7 +91,7 @@ class PeerRouter:
         self.rxbuffer = Queue()
         return
 
-    def connect(self, ip, port):
+    def connect(self, ip, port, block=False, duration=60):
         """ Connects to a peer.
             This process involves both the peer adding this router to thier peer list,
             and this router adding the peer to the peer list. 
@@ -95,6 +105,17 @@ class PeerRouter:
                 msg = ConnectMessage(toPeer, fromPeer)
                 self.txbuffer.put(msg)
 
+        # If blocking, wait for signal
+        if block:
+            try:
+                self.addSignal(ip, port)
+                with self.signalList[(ip, port)]:
+                    self.signalList[(ip, port)].wait(duration)
+            except Exception:
+                serverLogger.exception("Peer timed out!")
+            finally:
+                self.removeSignal(ip, port)
+
     def getPeers(self, ip, port):
         """
             Connects to a peer and tells that peer to tell all his peers to connect to me.
@@ -105,7 +126,7 @@ class PeerRouter:
         toPeer = (ip, port)
 
         # First connect
-        self.connect(ip, port)
+        self.connect(ip, port, block=True, duration=60)
 
         # Then send peer request
         requestMsg = PeerRequestMessage(toPeer, fromPeer)
@@ -133,6 +154,20 @@ class PeerRouter:
         getPeersMsg = GetPeerListMessage(toPeer, fromPeer)
         self.txbuffer.put(getPeersMsg)
 
+    def addSignal(self, ip, port):
+        """
+            Created a signal for blocking threads to wait on
+        """
+        with self.signalListLock:
+            self.signalList[(ip, port)] = Condition()
+
+    def removeSignal(self, ip, port):
+        """
+            Removes a signal for blocking threads to wait on
+        """
+        with self.signalListLock:
+            del self.signalList[(ip, port)]
+
     def send(self, ip, port, data):
         """
             Will send any data to a peer, can be any python object (that does not use file handles)
@@ -155,11 +190,11 @@ class PeerRouter:
             Broadcasts data to all other peers in network some data
         """
         fromPeer = (self.hostname, self.port)
-
-        for peerAddress in self.peerAddressToSocket.keys():
-            toPeer = peerAddress
-            dataMsg = DataMessage(toPeer, fromPeer, data)
-            self.txbuffer.put(dataMsg)
+        with self.peerLock:
+            for peerAddress in self.peerAddressToSocket.keys():
+                toPeer = peerAddress
+                dataMsg = DataMessage(toPeer, fromPeer, data)
+                self.txbuffer.put(dataMsg)
 
     def recv(self, peer_socket):
         """ Recieve data from a peer socket """
@@ -278,7 +313,7 @@ class PeerRouter:
                                 try:
                                     serverLogger.info(
                                         f"Closed connection from {triggered_socket.getpeername()}")
-                                except:
+                                except Exception:
                                     serverLogger.info(
                                         "A socket closed expectedly!")
                                 finally:
@@ -299,7 +334,7 @@ class PeerRouter:
                     # If any sockets throw an exception, remove them as a peer
                     for bad_socket in exception_sockets:
                         self.removeSocket(bad_socket)
-                except Exception as e:
+                except Exception:
                     serverLogger.error("Connection stopped suddenly.")
         except Exception:
             serverLogger.exception("Exception raised in RX thread.")

@@ -17,3 +17,17 @@ def test_data_is_added():
     testBlock = Block()
     testBlock.add_data("")
     assert len(testBlock.data) == 1
+
+
+def test_block_is_equal():
+    block_1 = Block()
+    block_2 = Block()
+
+    assert(block_1 == block_2)
+
+
+def test_block_is_not_equal():
+    block_1 = Block()
+    block_2 = Block(data=["hello"])
+
+    assert(block_1 != block_2)

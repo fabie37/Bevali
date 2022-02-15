@@ -18,4 +18,4 @@ clean_unix:
 	rm -r ./env/
 
 test:
-	py.test tests
+	coverage run -m pytest tests

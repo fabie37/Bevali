@@ -1,5 +1,3 @@
-from networking import peer
-
 
 class Message:
     """ Parent Class for sending messages """
@@ -26,8 +24,7 @@ class ConnectMessage(Message):
     def open(self, peerRouter):
         socketAddress = self.sourceAddress
 
-        # Make sure there is a known socket and the message came from same ip as socket.
-        # if (self.sourceSocket and socketAddress[0] == self.fromPeer[0]):
+        # Make sure there is a known socket
         if (self.sourceSocket):
             with peerRouter.peerLock:
                 if (self.fromPeer not in peerRouter.peerAddressToSocket or peerRouter.peerAddressToSocket[self.fromPeer].fileno() == -1):
@@ -40,10 +37,33 @@ class ConnectMessage(Message):
 
                     # For Socket Listener
                     peerRouter.socketList.append(self.sourceSocket)
+
+                    # Alert Application new peer connected
+                    peerRouter.newPeerQueue.put(self.fromPeer)
                 else:
                     print("Socket already here!")
+
+            # Accept the connection
+            toPeer = self.fromPeer
+            fromPeer = (peerRouter.hostname, peerRouter.port)
+            acceptMsg = AcceptedConnectMessage(toPeer, fromPeer)
+            peerRouter.txbuffer.put(acceptMsg)
         else:
             print("No source socket found!\n")
+
+
+class AcceptedConnectMessage(Message):
+    def __init__(self, toPeer, fromPeer):
+        super().__init__(toPeer, fromPeer)
+
+    def open(self, peerRouter):
+        address = (self.fromPeer[0], self.fromPeer[1])
+        try:
+            with peerRouter.signalList[address]:
+                peerRouter.signalList[address].notify()
+        except Exception:
+            # No signal exists! Ignore
+            print("No such signal exists!")
 
 
 class PeerRequestMessage(Message):
@@ -58,6 +78,8 @@ class PeerRequestMessage(Message):
                 toPeer = peerAddress
                 fromPeer = (peerRouter.hostname, peerRouter.port)
                 newPeer = self.fromPeer
+
+                # Tell my peers to connect to new peer
                 updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
                 peerRouter.txbuffer.put(updateMsg)
 
@@ -118,7 +140,7 @@ class DataMessage(Message):
     def open(self, peerRouter):
         # If open, push to data buffer
         if (self.data):
-            peerRouter.databuffer.put(self.data)
+            peerRouter.databuffer.put((self.fromPeer, self.data))
 
         # Notify signal for testing
         with peerRouter.threadManager.getThreadSignal("Message Thread"):

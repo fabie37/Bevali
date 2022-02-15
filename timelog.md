@@ -144,3 +144,69 @@
 
 * *6 hours* Researched more on background, found some great papers and have added them to citations manager." 
 * *3 hours* Tested P2P implementation on remote server and ironed out bugs on linux based systems."
+
+## Week 12
+
+### 20 Dec 2021
+
+* *3 hours* Implemented data handler thread to handle incomming netowrking feeds.
+
+### 21 Dec 2021
+
+* *1 hour* Re-reading the lit to make sure objective was consistent.
+* *8 hours* Implemented state passing between peers such as the blockchain for each peer.
+
+### 23 Dec 2021
+
+* *1 hour* Quick update to consensus algorithm, perform validity checks on incoming blockchain and choose longest blockchain as main.
+
+## Week 13
+
+### 26 Dec 2021
+
+* *1 hour* Another update to consesnsus algorith, working out how to pass blockchain state to other peers and create tests for it.
+
+## Week 14
+
+### 05 Jan 2022
+
+* *3 hours* More background research and writing down notes.
+* *1 hours* Tested python remote code execution using exec method. 
+
+### 09 Jan 2022
+
+* *3 hours* Added automatic handling for new connected peers to request applications state from them.
+
+## Week 15
+
+### 11 Jan 2022
+* *4 hours* Added mine functionality to propogate newly mined blocks through the network. Need to do more testing.
+
+## Week 16
+
+### 18 Jan 2022
+* *8 hours* started writing motivation for disseration.
+
+## Week 17
+
+## Week 18
+
+### 5 Feb 2022
+* *10 hours* started writting background for disseration.
+
+### 6 Feb 2022
+* *5 hours* updating more on background for more info
+
+## Week 19
+
+### 9 Feb 2022
+* *6 hours* Spent more time writting the disseration.
+
+### 12 Feb 2022
+* *10 hours* Implemented most of the smart contract functionality. Just need to implement peer validation.
+
+## Week 20
+
+### 14 Feb
+* *4 hours* Writting dissertation design phase.
+* *7 hours* Designing testing suite to gather metrics for evaluation. 

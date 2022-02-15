@@ -1,4 +1,3 @@
-from queue import Empty
 from networking.peer_router import PeerRouter
 from time import sleep
 
@@ -24,7 +23,7 @@ while (1):
         while not Router.databuffer.empty():
             msg = Router.databuffer.get()
             print(msg)
-    except:
+    except Exception:
         continue
 
 print("Stopped")

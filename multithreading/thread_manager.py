@@ -1,8 +1,5 @@
 from threading import Lock
 from threading import Condition
-from multithreading import ManagedThread
-from multithreading import ThreadStatus
-from time import sleep
 
 
 class ThreadManager:

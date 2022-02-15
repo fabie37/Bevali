@@ -1,6 +1,5 @@
 from blockchain import Block
 from networking import PeerRouter
-from networking import Peer
 from time import sleep
 
 firstBlock = Block()
@@ -12,8 +11,8 @@ LOCAL_PORT = 1234
 
 # Start two routers
 Peer_Bob = PeerRouter(LOCAL_HOST, LOCAL_PORT)
-Peer_Alice = PeerRouter(LOCAL_HOST, LOCAL_PORT+1)
-Peer_Carol = PeerRouter(LOCAL_HOST, LOCAL_PORT+2)
+Peer_Alice = PeerRouter(LOCAL_HOST, LOCAL_PORT + 1)
+Peer_Carol = PeerRouter(LOCAL_HOST, LOCAL_PORT + 2)
 
 Peer_Bob.start()
 Peer_Alice.start()
