@@ -210,3 +210,6 @@
 ### 14 Feb
 * *4 hours* Writting dissertation design phase.
 * *7 hours* Designing testing suite to gather metrics for evaluation. 
+
+### 15 Feb
+* *8 hours* Designing test suite more so and fixed bug with conesensus algorithm for multiple miners.

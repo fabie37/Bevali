@@ -129,8 +129,8 @@ class PeerRouter:
         self.connect(ip, port, block=True, duration=60)
 
         # Then send peer request
-        requestMsg = PeerRequestMessage(toPeer, fromPeer)
-        self.txbuffer.put(requestMsg)
+        # requestMsg = PeerRequestMessage(toPeer, fromPeer)
+        # self.txbuffer.put(requestMsg)
 
     def getPeerList(self, ip, port):
         """

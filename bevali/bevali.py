@@ -6,11 +6,12 @@ from datahandler import DataHandler
 from datahandler import BlockChainSink, BlockSink, PoolSink, RequestsSink
 from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
-from threading import Lock
+from threading import Lock, RLock, Condition
 from blockchain import Blockchain, Block
 from transactions import Transaction
 
 TRANSACTIONS_TO_MINE = 5
+RELEASE_TRANSACTIONS_AFTER = 2
 
 
 class Bevali():
@@ -34,7 +35,7 @@ class Bevali():
         self.router = PeerRouter(ip, port)
 
         # Ground Truth blockchain
-        self.blockchainLock = Lock()
+        self.blockchainLock = RLock()
         self.blockchain = Blockchain()
 
         # Secondary Chains
@@ -79,6 +80,9 @@ class Bevali():
         self.handler.addDataSink(blockSink)
         self.handler.addDataSink(blockchainSink)
         self.handler.addDataSink(requestSink)
+
+        # Thread Queue to signal custom actions
+        self.signal = Queue()
 
     def start(self):
         """
@@ -128,17 +132,17 @@ class Bevali():
         """ Method to mine a block """
 
         # Record Current length of chain
-        currentLength = 0
+        mainCopy = None
         with self.blockchainLock:
-            currentLength = len(self.blockchain.chain)
+            mainCopy = self.blockchain.copy()
 
         # Mine a new block
-        block = self.blockchain.mine_block(data)
+        block = mainCopy.mine_block(data, self.port)
 
         # If minning successful, broadcast to peers new block
         with self.blockchainLock:
-            if currentLength == len(self.blockchain.chain):
-                self.blockchain.add_block(block)
+            if len(mainCopy.chain) == len(self.blockchain.chain):
+                self.processBlock(block)
                 self.router.broadcast(block)
                 return True
 
@@ -155,6 +159,85 @@ class Bevali():
 
         # 3. Wait for a blockchain object to come from our peer
         self.handler.waitOnData((ip, port), Blockchain, 60)
+
+    def findCommonBlock(self, mainChain, sndChain):
+        """
+            Returns a common block between two chains
+        """
+        common_head = len(mainChain) - len(sndChain)
+        mainPointer = len(mainChain) - common_head - 1
+        sndChainPointer = len(sndChain) - 1
+        while mainChain[mainPointer].generate_hash() != sndChain[sndChainPointer].generate_hash():
+            mainPointer -= 1
+            sndChainPointer -= 1
+        if mainChain[mainPointer].generate_hash() == sndChain[sndChainPointer].generate_hash():
+            return (mainPointer, sndChainPointer)
+        else:
+            return None
+
+    def getListOfTransactionsInChain(self, chain, fromIndex=None):
+        """
+            Returns a list which contains the transactions in a blockchain list
+        """
+        transactions = []
+        if fromIndex:
+            for block in chain.chain[fromIndex:]:
+                if isinstance(block.data, list):
+                    for tx in block.data:
+                        if isinstance(tx, Transaction):
+                            transactions.append(tx)
+                else:
+                    break
+        return transactions
+
+    def releaseTransactions(self):
+        """
+            If main chain is beating secondary chains,
+            release old transactions back to network
+        """
+        lengths = []
+        with self.blockchainLock:
+            with self.secondaryChainsLock:
+                # Get the length of all secondary chains
+                for sndChain in self.secondaryChains:
+                    lengths.append(len(sndChain.chain))
+
+                # If no secondary chains, return
+                if not lengths:
+                    return
+
+                # if the main chain is definitely ahead, release mined transactioned
+                if len(self.blockchain.chain) >= max(lengths) + RELEASE_TRANSACTIONS_AFTER:
+                    for sndChain in self.secondaryChains:
+                        commonBlocks = self.findCommonBlock(
+                            self.blockchain.chain, sndChain.chain)
+                        if commonBlocks:
+                            # add all transactions in old chain back into tx pool
+                            sndChainPointer = commonBlocks[1]
+                            sndChainTxs = self.getListOfTransactionsInChain(
+                                sndChain, sndChainPointer)
+                            mainChainPointer = commonBlocks[0]
+                            mainChainTxs = self.getListOfTransactionsInChain(
+                                self.blockchain, mainChainPointer)
+                            # Take away the transactions that already exist in main chain
+                            toRelease = list(
+                                set(sndChainTxs) - set(mainChainTxs))
+                            # Add lost transactions back in pool
+                            for tx in toRelease:
+                                self.pool.append(tx)
+
+                    # Clear secondary chains
+                    self.secondaryChains = []
+
+    def releaseTransactionsFromNewBlock(self, block):
+        """
+            When a new block comes to the blockchain,
+            remove any transactions that are in the pool
+        """
+        if isinstance(block.data, list):
+            for tx in block.data:
+                if isinstance(tx, Transaction):
+                    self.pool.remove(tx)
 
     def processBlock(self, block):
         """ Processes a new block incomming """
@@ -173,8 +256,12 @@ class Bevali():
         # 3) See if block belongs on main chain
         with self.blockchainLock:
             if self.blockchain.block_belongs(block):
+                self.releaseTransactionsFromNewBlock(block)
                 self.blockchain.add_block(block)
-                return False
+
+                # For evaluation purposes
+                self.signal.put("New Block")
+                return True
 
         # 4) If not here then it might be in a secondary chain
         checkReplacement = False
@@ -191,15 +278,35 @@ class Bevali():
         # This is the only time we ever edit a secondary chain directly
         if checkReplacement:
             with self.blockchainLock:
-                if len(blockchainContender) > len(self.blockchain):
+                mainChain = None
+                if len(blockchainContender.chain) > len(self.blockchain.chain):
+                    self.releaseTransactionsFromNewBlock(block)
+                    mainChain = self.blockchain
                     self.blockchain = blockchainContender
+                    with self.secondaryChainsLock:
+                        self.secondaryChains.remove(blockchainContender)
+                        self.secondaryChains.append(mainChain)
+            return True
 
-            with self.secondaryChainsLock:
-                self.secondaryChains.remove(blockchainContender)
+        # 6) Check if block's prev hash is a part of main chain,
+        #    if so, create a secondary chain, with new block as head
+        with self.blockchainLock:
+            if blockNumber := self.blockchain.is_prev_hash_in_chain(block):
+                newChain = self.blockchain.copy(blockNumber)
+                newChain.add_block(block)
 
-        # 6) Since there is not place for block to go, call it an orphan.
+                # For evaluation purposes
+                self.signal.put("New Block")
+
+                # Put main back into secondary chains
+                with self.secondaryChainsLock:
+                    self.secondaryChains.append(newChain)
+                return True
+
+        # 7) Since there is not place for block to go, call it an orphan.
         with self.orphanBlocksLock:
             self.orphanBlocks.append(block)
+            return False
 
     def processBlockchain(self, blockchain):
         """ Processes a new blockchain incomming """
@@ -250,6 +357,7 @@ class Bevali():
                 try:
                     request = self.requests.get(block=True, timeout=0.1)
                     request.open(self)
+                    self.requests.task_done()
                 except Exception:
                     # No requests available
                     pass
@@ -259,6 +367,7 @@ class Bevali():
                     block = self.blocks.get(block=True, timeout=1)
                     self.blocks.task_done()
                     self.processBlock(block)
+                    # self.releaseTransactions()
                 except Exception:
                     # No blocks available
                     pass
@@ -268,6 +377,7 @@ class Bevali():
                     # Get blockchain
                     blockchain = self.blockchains.get(block=True, timeout=0.1)
                     self.processBlockchain(blockchain)
+                    self.blockchains.task_done()
 
                 except Exception:
                     # No blockchain available
@@ -284,7 +394,7 @@ class Bevali():
 
                 try:
                     # Before minning, get the transactions from transaction pool
-                    poolTxs = self.pool[:TRANSACTIONS_TO_MINE]
+                    poolTxs = self.pool.take(TRANSACTIONS_TO_MINE)
 
                     if poolTxs:
                         transactions = []
