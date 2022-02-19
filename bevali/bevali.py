@@ -114,6 +114,9 @@ class Bevali():
         self.minningManager.startThreads()
 
     def stop_minning(self):
+        """
+            Stops all threads associated with minning
+        """
         if self.isMinning:
             self.minningManager.stopThreads()
             self.isMinning = False
@@ -239,21 +242,30 @@ class Bevali():
                 if isinstance(tx, Transaction):
                     self.pool.remove(tx)
 
-    def processBlock(self, block):
-        """ Processes a new block incomming """
-        # 1) Check hash is valid
+    def newBlockHashValid(self, block):
+        """
+            Checks if a new block's hash is valid
+        """
         with self.blockchainLock:
             if not self.blockchain.block_valid(block):
                 return False
+        return True
 
-        # 2) Check to see if transactions are valid
+    def newBlockTransactionsValid(self, block):
+        """
+            Checks if the transactions in a block are valid
+        """
         with self.blockchainLock:
             for tx in block.data:
                 if isinstance(tx, Transaction) or issubclass(type(tx), Transaction):
                     if not tx.validate(self.blockchain, block):
                         return False
+        return True
 
-        # 3) See if block belongs on main chain
+    def newBlockBelongsOnMainChain(self, block):
+        """
+            Checks if new block should be on main chain.
+        """
         with self.blockchainLock:
             if self.blockchain.block_belongs(block):
                 self.releaseTransactionsFromNewBlock(block)
@@ -262,34 +274,44 @@ class Bevali():
                 # For evaluation purposes
                 self.signal.put("New Block")
                 return True
+        return False
 
-        # 4) If not here then it might be in a secondary chain
-        checkReplacement = False
-        blockchainContender = None
+    def newBlockBelongsOnSecondaryChains(self, block):
+        """
+            Checks if new block should be added to a
+            secondary chain.
+        """
+        blockchainContender = False
         with self.secondaryChainsLock:
             for blockchain in self.secondaryChains:
                 if blockchain.block_belongs(block):
                     blockchain.add_block(block)
-                    checkReplacement = True
                     blockchainContender = blockchain
+        return blockchainContender
 
-        # 5) Check if main chain needs replaced
-        # It shouldn't matter that it's not protected here,
-        # This is the only time we ever edit a secondary chain directly
-        if checkReplacement:
-            with self.blockchainLock:
-                mainChain = None
-                if len(blockchainContender.chain) > len(self.blockchain.chain):
-                    self.releaseTransactionsFromNewBlock(block)
-                    mainChain = self.blockchain
-                    self.blockchain = blockchainContender
-                    with self.secondaryChainsLock:
-                        self.secondaryChains.remove(blockchainContender)
-                        self.secondaryChains.append(mainChain)
-            return True
+    def challengeMainChain(self, contenderChain, block):
+        """
+            Checks if a contending chain is longer 
+            than the main chain.
+            If so, swap and release added block's
+            transactions.
+        """
+        with self.blockchainLock:
+            mainChain = None
+            if len(contenderChain.chain) > len(self.blockchain.chain):
+                self.releaseTransactionsFromNewBlock(block)
+                mainChain = self.blockchain
+                self.blockchain = contenderChain
+                with self.secondaryChainsLock:
+                    self.secondaryChains.remove(contenderChain)
+                    self.secondaryChains.append(mainChain)
+        return True
 
-        # 6) Check if block's prev hash is a part of main chain,
-        #    if so, create a secondary chain, with new block as head
+    def newBlockCausedAFork(self, block):
+        """
+            Checks if a block causes a fork,
+            thus creates a new secondary chain
+        """
         with self.blockchainLock:
             if blockNumber := self.blockchain.is_prev_hash_in_chain(block):
                 newChain = self.blockchain.copy(blockNumber)
@@ -302,11 +324,42 @@ class Bevali():
                 with self.secondaryChainsLock:
                     self.secondaryChains.append(newChain)
                 return True
+        return False
 
-        # 7) Since there is not place for block to go, call it an orphan.
+    def addOrphanBlock(self, block):
+        """
+            Block passed in becomes an orphan.
+        """
         with self.orphanBlocksLock:
             self.orphanBlocks.append(block)
+            return True
+
+    def processBlock(self, block):
+        """ Processes a new block incomming """
+        # 1) Check hash is valid
+        if not self.newBlockHashValid(block):
             return False
+
+        # 2) Check to see if transactions are valid
+        if not self.newBlockTransactionsValid(block):
+            return False
+
+        # 3) See if block belongs on main chain
+        if self.newBlockBelongsOnMainChain(block):
+            return True
+
+        # 4) If not here then it might be in a secondary chain
+        if contender := self.newBlockBelongsOnSecondaryChains(block):
+            # 5) Check if main chain needs replaced
+            return self.challengeMainChain(contender, block)
+
+        # 6) Check if block's prev hash is a part of main chain,
+        #    if so, create a secondary chain, with new block as head
+        if self.newBlockCausedAFork(block):
+            return True
+
+        # 7) Since there is not place for block to go, call it an orphan.
+        return self.addOrphanBlock(block)
 
     def processBlockchain(self, blockchain):
         """ Processes a new blockchain incomming """
@@ -350,6 +403,11 @@ class Bevali():
                         self.secondaryChains.append(newChain)
 
     def processingThread(self, _thread):
+        """
+            As the name implies, this thread
+            processes any request, sent from
+            filtered by the data handler.
+        """
         try:
             while _thread["status"] != ThreadStatus.STOPPING:
 
@@ -388,6 +446,9 @@ class Bevali():
                 _thread["status"] = ThreadStatus.ERROR
 
     def minningThread(self, _thread):
+        """
+            This thread starts the minning process.
+        """
         print("Starting to mine...")
         try:
             while _thread["status"] != ThreadStatus.STOPPING:
@@ -421,6 +482,11 @@ class Bevali():
                 _thread["status"] = ThreadStatus.ERROR
 
     def peerWatcherThread(self, _thread):
+        """
+            This thread watches out for new threads.
+            If one if found, it sends a request for 
+            their blockchain.
+        """
         try:
             while _thread["status"] != ThreadStatus.STOPPING:
                 try:

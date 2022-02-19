@@ -207,9 +207,15 @@
 
 ## Week 20
 
-### 14 Feb
+### 14 Feb 2022
 * *4 hours* Writting dissertation design phase.
 * *7 hours* Designing testing suite to gather metrics for evaluation. 
 
-### 15 Feb
+### 15 Feb 2022
 * *8 hours* Designing test suite more so and fixed bug with conesensus algorithm for multiple miners.
+
+### 17 Feb 2022
+* *8 hours* debugging test suite and ensuring blockchain works with processes
+
+## 18 Feb 2022
+* *6 hours* refining test suite and fixing more bugs.

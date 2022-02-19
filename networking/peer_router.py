@@ -201,14 +201,15 @@ class PeerRouter:
         try:
             message_header = peer_socket.recv(HEADERSIZE)
 
-            if not len(message_header):
+            if message_header is not None:
                 return False
 
             message_length = int(message_header.decode("utf-8").strip())
             client_msg = peer_socket.recv(message_length)
             rx_data = pickle.loads(client_msg)
             return rx_data
-        except Exception:
+        except Exception as e:
+            print(e)
             serverLogger.exception("Failed to read from peer socket!")
             return False
 

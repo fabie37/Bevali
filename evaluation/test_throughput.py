@@ -74,7 +74,6 @@ def launch_processes(proc, numb, argus):
         p = Process(target=proc, args=argus[x])
         processes.append(p)
         p.start()
-        sleep(2)
     return processes
 
 
@@ -273,56 +272,13 @@ def experiment_start(num_peers, num_miners, num_tx, difficulty):
 
 if __name__ == '__main__':
 
-    # Difficulty Level 1
-    diff = '0'
-    demochain = create_demo_chain(diff)
-    results = experiment_start(2, 1, 100, diff)
-    results = pd.concat([results, experiment_start(4, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(3, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(4, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 4, 100, diff)])
-
-    # Difficulty Level 2
-    diff = '00'
-    demochain = create_demo_chain(diff)
-    results = pd.concat([results, experiment_start(2, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(4, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(3, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(4, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 4, 100, diff)])
-
-    # Difficulty Level 3
-    diff = '000'
-    demochain = create_demo_chain(diff)
-    results = pd.concat([results, experiment_start(2, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(4, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 1, 100, diff)])
-    results = pd.concat([results, experiment_start(3, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(4, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 2, 100, diff)])
-    results = pd.concat([results, experiment_start(8, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(16, 4, 100, diff)])
-    results = pd.concat([results, experiment_start(20, 4, 100, diff)])
+    txs = 100
+    results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
+    for diff in ['0', '00', '000']:
+        demochain = create_demo_chain(diff)
+        for miners in [3, 4]:
+            for peers in [40, 20]:
+                results = pd.concat([results, experiment_start(peers, miners, txs, diff)])
 
     # Record Results
-    results.to_csv("eval_throughput.csv")
+    results.to_csv("evaluation/eval_throughput.csv")
