@@ -24,6 +24,7 @@ class PeerRouter:
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.serverSocket.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
         self.serverSocket.settimeout(None)
 
         # Define Peers in sever
@@ -95,7 +96,7 @@ class PeerRouter:
     def connect(self, ip, port, block=False, duration=60):
         """ Connects to a peer.
             This process involves both the peer adding this router to thier peer list,
-            and this router adding the peer to the peer list. 
+            and this router adding the peer to the peer list.
         """
         fromPeer = (self.hostname, self.port)
         toPeer = (ip, port)
@@ -121,7 +122,7 @@ class PeerRouter:
         """
             Connects to a peer and tells that peer to tell all his peers to connect to me.
             This should hopefully solve the issue of two peers trying to connect to eachother at the same time.
-            As there is no new, you only even need to connect to one peer. 
+            As there is no new, you only even need to connect to one peer.
         """
         fromPeer = (self.hostname, self.port)
         toPeer = (ip, port)
@@ -139,7 +140,7 @@ class PeerRouter:
             This is non blocking, so the thread calling this might need to wait.
             Ie there is no way of knowing if the peer will even reply!
             Easy check to implement would be to add signal for when the msg thread gets
-            the reply to this message (SendPeerListMessage), 
+            the reply to this message (SendPeerListMessage),
             it signals this thread. But thats not important rightnow
         """
         fromPeer = (self.hostname, self.port)
@@ -260,7 +261,8 @@ class PeerRouter:
                                         socket.AF_INET, socket.SOCK_STREAM)
                                     sock.setsockopt(
                                         socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                                    sock.settimeout(None)
+                                    sock.ioctl(
+                                        socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
                                     sock.connect(msg.toPeer)
                                     sock.settimeout(None)
                                     # Socket List [... sock]
@@ -272,7 +274,8 @@ class PeerRouter:
                                     # toPeer -> sock
                                     self.peerAddressToSocket[msg.toPeer] = sock
                                     sock.send(serializedMsg)
-                            except Exception:
+                            except Exception as e:
+                                print(e)
                                 serverLogger.exception(
                                     "Could not send message in txBuffer!")
                         else:
@@ -330,8 +333,8 @@ class PeerRouter:
             return False
 
     def rxThread(self, _thread):
-        """ 
-            rxThread: Thread that listens for connections and data. 
+        """
+            rxThread: Thread that listens for connections and data.
         """
         try:
             self.serverSocket.bind((self.hostname, self.port))
@@ -341,7 +344,7 @@ class PeerRouter:
                 # Wake when something has happened to any of the sockets.
                 try:
                     read_sockets, _, exception_sockets = select.select(
-                        self.socketList, [], self.socketList, 0.5)
+                        self.socketList, [], self.socketList, 1)
 
                     for triggered_socket in read_sockets:
                         # if a new peer connects to server's socket, get thier incoming message and push to rx buffer.

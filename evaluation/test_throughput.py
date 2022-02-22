@@ -74,6 +74,7 @@ def launch_processes(proc, numb, argus):
         p = Process(target=proc, args=argus[x])
         processes.append(p)
         p.start()
+        sleep(1)
     return processes
 
 
@@ -119,7 +120,7 @@ def getFromQueue(queue, item):
 
 def run_node(ip, port, miner, peers, txs, queue, callbackQ):
     """
-        Runs an instance of Bevali Blockchain
+        Runs an instance of Bevali Blockchain6
     """
     # Blockchain
     node = Bevali(ip, port)
@@ -276,9 +277,10 @@ if __name__ == '__main__':
     results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
     for diff in ['0', '00', '000']:
         demochain = create_demo_chain(diff)
-        for miners in [3, 4]:
-            for peers in [40, 20]:
+        for miners in [1,2,3]:
+            for peers in [16, 18, 20]:
                 results = pd.concat([results, experiment_start(peers, miners, txs, diff)])
+                results.to_csv("evaluation/eval_throughput.csv", mode='a', header = not os.path.exists("evaluation/eval_throughput.csv"))
+                results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
 
-    # Record Results
-    results.to_csv("evaluation/eval_throughput.csv")
+
