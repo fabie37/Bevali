@@ -5,7 +5,7 @@ import blockchain
 from blockchain.block import Block
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
-from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction
+from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction, signHash
 from time import sleep
 from math import log
 import os
@@ -469,3 +469,42 @@ def test_connect():
         peer.stop()
     alice.stop()
     assert(sum(connections) == 9 * 9)
+
+
+def test_encrypted_transaction():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    main.add_block(Block())
+    for i in range(1, 4):
+        tx = ContractCreateTransaction(
+            alice.getSerialPublicKey(), i, "", {}, {}, None, alice.getSerialPublicKey())
+        signHash(tx, alice.privateKey)
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+
+    valid = True
+    for block in main.chain:
+        valid = alice.newBlockTransactionsValid(block)
+
+    return valid
+
+
+def test_tampered_encrypted_transaction():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    main.add_block(Block())
+    for i in range(1, 4):
+        tx = ContractCreateTransaction(
+            alice.getSerialPublicKey(), i, "", {}, {}, None, alice.getSerialPublicKey())
+        signHash(tx, alice.privateKey)
+        tx.data = [1, 2, 3]
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+
+    valid = True
+    for block in main.chain:
+        valid = alice.newBlockTransactionsValid(block)
+
+    return not valid

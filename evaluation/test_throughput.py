@@ -275,10 +275,10 @@ if __name__ == '__main__':
 
     txs = 100
     results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
-    for diff in ['0', '00', '000']:
+    for diff in ['000']:
         demochain = create_demo_chain(diff)
         for miners in [1,2,3]:
-            for peers in [16, 18, 20]:
+            for peers in [8, 10, 12, 14]:
                 results = pd.concat([results, experiment_start(peers, miners, txs, diff)])
                 results.to_csv("evaluation/eval_throughput.csv", mode='a', header = not os.path.exists("evaluation/eval_throughput.csv"))
                 results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])

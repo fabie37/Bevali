@@ -47,7 +47,7 @@ class Block:
         }
         blockJson = json.dumps(blockObject)
         hash = hashlib.sha256()
-        hash.update(blockJson.encode('ascii'))
+        hash.update(blockJson.encode('UTF-8'))
         return hash.hexdigest()
 
     def __eq__(self, other):

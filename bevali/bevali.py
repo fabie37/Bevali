@@ -1,4 +1,3 @@
-
 from queue import Queue
 from multithreading.managed_thread import ManagedThread
 from networking import PeerRouter
@@ -8,7 +7,8 @@ from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
 from threading import Lock, RLock, Condition
 from blockchain import Blockchain, Block
-from transactions import Transaction
+from transactions import Transaction, signHash, verifyHash
+from encryption import get_public_key, generate_private_key, serialize_public_key, deserialize_public_key, verify, sign
 
 TRANSACTIONS_TO_MINE = 5
 RELEASE_TRANSACTIONS_AFTER = 2
@@ -45,6 +45,10 @@ class Bevali():
         # Orphan Blocks
         self.orphanBlocksLock = Lock()
         self.orphanBlocks = []
+
+        # Public/Private Key Crypto
+        self.privateKey = generate_private_key()
+        self.publicKey = get_public_key(self.privateKey)
 
         # Handles incoming data send from other peers from the router
         self.handler = DataHandler(self.router.databuffer)
@@ -121,6 +125,12 @@ class Bevali():
             self.minningManager.stopThreads()
             self.isMinning = False
 
+    def getSerialPublicKey(self):
+        """
+            Returns a string format of public key
+        """
+        return serialize_public_key(self.publicKey).decode("utf-8")
+
     def createNewChain(self):
         """ Method to created a new chain """
         firstBlock = Block()
@@ -128,6 +138,8 @@ class Bevali():
         self.blockchain.add_block(firstBlock)
 
     def sendTransaction(self, transaction):
+        # First sign transactions hash
+        signHash(transaction, self.privateKey)
         self.pool.append(transaction)
         self.router.broadcast(transaction)
 
