@@ -74,7 +74,7 @@ def verify(signature, message_bytes, public_key):
             ),
             hashes.SHA256()
         )
-    except Exception as e:
+    except Exception:
         valid = False
     return valid
 

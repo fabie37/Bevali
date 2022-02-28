@@ -219,3 +219,27 @@
 
 ## 18 Feb 2022
 * *6 hours* refining test suite and fixing more bugs.
+
+### Week 21
+
+## 21 Feb 2022
+* *6 hours* writing motivation to dissertation
+
+## 22 Feb 2022 
+* *5 hours* finished motivation working on background
+
+## 23 Feb 2022 
+* *7 hours* still working on background
+
+## 24 Feb 2022
+* *9 hours* most of background completed, added feature branch for encryption too
+
+## 25 Feb 2022 
+* *3 hours* finished off background, moving on to requirements
+
+### Week 22
+
+## 28 Feb 2022
+* *2 hours* merging encrpytion branch to main 
+* *3 hours* started requirements/analysis section
+
