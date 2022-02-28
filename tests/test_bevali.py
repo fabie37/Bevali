@@ -1,8 +1,11 @@
 
+from copy import copy, deepcopy
 from bevali import Bevali
+import blockchain
+from blockchain.block import Block
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
-from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction
+from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction, signHash
 from time import sleep
 from math import log
 import os
@@ -332,3 +335,176 @@ def test_contract_state_updated():
 
     assert(isinstance(aliceT, Transaction) and isinstance(
         bobT, Transaction) and isinstance(carolT, Transaction))
+
+
+def test_blockchain_2_blocks_ahead():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    longchain = blockchain.Blockchain()
+    shortchain = blockchain.Blockchain()
+    longchain.add_block(Block())
+    shortchain.add_block(Block())
+    for i in range(4):
+        tx = ContractCreateTransaction("alice", i, "", {}, {})
+        mined_block = longchain.mine_block([tx])
+        longchain.add_block(mined_block)
+        shortchain.add_block(mined_block)
+
+    tx_5 = ContractCreateTransaction("alice", 5, "", {}, {})
+    tx_6 = ContractCreateTransaction("alice", 6, "", {}, {})
+    tx_7 = ContractCreateTransaction("alice", 7, "", {}, {})
+    tx_9 = ContractCreateTransaction("alice", 9, "", {}, {})
+
+    shortchain.add_block(shortchain.mine_block([tx_5, tx_6, tx_9]))
+
+    longchain.add_block(longchain.mine_block([tx_5]))
+    longchain.add_block(longchain.mine_block([tx_6]))
+    longchain.add_block(longchain.mine_block([tx_7]))
+
+    alice.blockchain = longchain
+    alice.secondaryChains.append(shortchain)
+
+    alice.releaseTransactions()
+
+    # This should be []
+    secondaryChains = alice.secondaryChains
+
+    # This should shoudld contract a contract with contract_id 7
+    releasedtx = alice.pool.pop()
+    assert(not secondaryChains and releasedtx == tx_9)
+
+
+def test_new_block_removes_old_transactions():
+
+    tx_5 = ContractCreateTransaction("alice", 5, "", {}, {})
+    tx_6 = ContractCreateTransaction("alice", 6, "", {}, {})
+    tx_7 = ContractCreateTransaction("alice", 7, "", {}, {})
+    tx_9 = ContractCreateTransaction("alice", 9, "", {}, {})
+
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    longchain = blockchain.Blockchain()
+    longchain.add_block(Block())
+    longchain.add_block(longchain.mine_block([tx_5]))
+    longchain.add_block(longchain.mine_block([tx_6]))
+    longchain.add_block(longchain.mine_block([tx_7]))
+    alice.pool.append(tx_9)
+
+    alice.blockchain = longchain
+    alice.releaseTransactionsFromNewBlock(longchain.mine_block([tx_9]))
+    releasedtx = alice.pool
+    assert(not releasedtx)
+
+
+def test_main_blockchain_switches_with_longer_secondary():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    secondary = blockchain.Blockchain()
+    main.add_block(Block())
+    secondary.add_block(Block())
+    for i in range(4):
+        tx = ContractCreateTransaction("alice", i, "", {}, {})
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+        secondary.add_block(mined_block)
+
+    tx_5 = ContractCreateTransaction("alice", 5, "", {}, {})
+    tx_6 = ContractCreateTransaction("alice", 6, "", {}, {})
+    tx_9 = ContractCreateTransaction("alice", 9, "", {}, {})
+
+    main.add_block(main.mine_block([tx_5]))
+    secondary.add_block(main.mine_block([tx_6]))
+
+    alice.blockchain = main
+    alice.secondaryChains.append(secondary)
+    alice.processBlock(secondary.mine_block([tx_6, tx_9]))
+
+    # This should be []
+    mainChain = alice.blockchain
+    secondaryChain = alice.secondaryChains[0]
+
+    assert(mainChain == secondary and secondaryChain == main)
+
+
+def test_new_secondary_chain_created_on_competing_block():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    main.add_block(Block())
+    for i in range(4):
+        tx = ContractCreateTransaction("alice", i, "", {}, {})
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+
+    competingChain = main.copy(2)
+    tx = ContractCreateTransaction("alice", i, "", {}, {})
+    competingBlock = competingChain.mine_block([tx])
+
+    alice.blockchain = main
+    alice.processBlock(competingBlock)
+    secondaryChain = alice.secondaryChains[0]
+
+    assert(len(secondaryChain.chain) == 4)
+
+
+def test_connect():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    alice.createNewChain()
+    alice.start()
+
+    peers = []
+    for i in range(1, 10):
+        peer = Bevali(LOCAL_HOST, PORT_START + i)
+        peer.start()
+        peer.connectToNode(LOCAL_HOST, PORT_START)
+        peers.append(peer)
+
+    sleep(20)
+
+    connections = []
+    for peer in peers:
+        connections.append(len(peer.router.socketAddressToPeerAddress))
+
+    for peer in peers:
+        peer.stop()
+    alice.stop()
+    assert(sum(connections) == 9 * 9)
+
+
+def test_encrypted_transaction():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    main.add_block(Block())
+    for i in range(1, 4):
+        tx = ContractCreateTransaction(
+            alice.getSerialPublicKey(), i, "", {}, {}, None, alice.getSerialPublicKey())
+        signHash(tx, alice.privateKey)
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+
+    valid = True
+    for block in main.chain:
+        valid = alice.newBlockTransactionsValid(block)
+
+    return valid
+
+
+def test_tampered_encrypted_transaction():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+
+    main = blockchain.Blockchain()
+    main.add_block(Block())
+    for i in range(1, 4):
+        tx = ContractCreateTransaction(
+            alice.getSerialPublicKey(), i, "", {}, {}, None, alice.getSerialPublicKey())
+        signHash(tx, alice.privateKey)
+        tx.data = [1, 2, 3]
+        mined_block = main.mine_block([tx])
+        main.add_block(mined_block)
+
+    valid = True
+    for block in main.chain:
+        valid = alice.newBlockTransactionsValid(block)
+
+    return not valid

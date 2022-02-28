@@ -1,12 +1,12 @@
 
-from threading import Lock
+from threading import RLock
 from collections import UserList
 
 
 class ProtectedList(UserList):
     def __init__(self, initlist=None):
         super().__init__(initlist=initlist)
-        self.lock = Lock()
+        self.lock = RLock()
 
     def append(self, item):
         with self.lock:
@@ -15,8 +15,19 @@ class ProtectedList(UserList):
 
     def remove(self, item):
         with self.lock:
-            item = super().remove(item)
+            if super().__contains__(item):
+                item = super().remove(item)
         return item
+
+    def set_removal(self, lst):
+        """
+            Removes all elements in lst from this protected list
+        """
+        with self.lock:
+            for item in lst:
+                if super().__contains__(item):
+                    super().remove(item)
+        return
 
     def take(self, num=1):
         items = []

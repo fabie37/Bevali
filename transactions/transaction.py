@@ -1,23 +1,29 @@
 """
-    This defines the class for all transactions 
+    This defines the class for all transactions
     that can be send over the blockchain.
 
     This will also include contract creation,
     invocation and updating.
 """
 from time import time
+import encryption as crypt
+import hashlib
+import json
+import pickle
 
 
 class Transaction():
     """
-        Transcation is a parent class, and every object 
+        Transcation is a parent class, and every object
         on the blockchain is a transaction to some degree
     """
 
-    def __init__(self, creator, data=None):
+    def __init__(self, creator, data=None, public_key=None):
         self.creator = creator
         self.data = data
         self.timestamp = time()
+        self.hash = ""
+        self.public_key = public_key
 
     def exec(self, blockchain=None):
         """
@@ -29,10 +35,13 @@ class Transaction():
 
     def validate(self, blockchain, block):
         """
-            Used for when peers need to validate 
+            Used for when peers need to validate
             a transaction when a new block comes
             in.
         """
+        # If condition to not break testing
+        if self.public_key:
+            return verifyHash(self)
         return True
 
     def jsonize(self):
@@ -54,12 +63,13 @@ class ContractCreateTransaction(Transaction):
         contrat code
     """
 
-    def __init__(self, creator, contract_id, code, memory, state, data=None):
-        super().__init__(creator, data)
+    def __init__(self, creator, contract_id, code, memory, state, data=None, public_key=None):
+        super().__init__(creator, data, public_key)
         self.contract_id = contract_id
         self.code = code
         self.memory = memory
         self.state = state
+        self.hash = ""
 
     def exec(self, blockchain=None):
         return self
@@ -68,10 +78,12 @@ class ContractCreateTransaction(Transaction):
         """
             There shouldn't be any need to
             validate a contract, other
-            than to parse it to see 
+            than to parse it to see
             if the code is correct.
             Beyond the scope.
         """
+        if self.public_key:
+            return verifyHash(self)
         return True
 
     def jsonize(self):
@@ -93,13 +105,14 @@ class ContractCreateTransaction(Transaction):
 class ContractUpdateTranscation(Transaction):
     """
         This transaction will typically only be returned by contracts
-        themselves or by oracles. 
+        themselves or by oracles.
     """
 
-    def __init__(self, creator, contract_id, state, data=None):
-        super().__init__(creator, data)
+    def __init__(self, creator, contract_id, state, data=None, public_key=None):
+        super().__init__(creator, data, public_key)
         self.contract_id = contract_id
         self.state = state
+        self.hash = ""
 
     def exec(self, blockchain):
         return self
@@ -107,7 +120,7 @@ class ContractUpdateTranscation(Transaction):
     def validate(self, blockchain, block):
         """
             Updates to state should only happen when an invocation
-            made the update. 
+            made the update.
             Find the invocation, run it and make sure it's returns
             this.
 
@@ -135,9 +148,10 @@ class ContractInvokeTransaction(Transaction):
 
     """
 
-    def __init__(self, creator, contract_id, data=None):
-        super().__init__(creator, data)
+    def __init__(self, creator, contract_id, data=None, public_key=None):
+        super().__init__(creator, data, public_key)
         self.contract_id = contract_id
+        self.hash = ""
 
     def exec(self, blockchain, blockNumber=None):
         try:
@@ -210,10 +224,15 @@ class ContractInvokeTransaction(Transaction):
             UPDATE TO FUTURE SELF:
                 Make sure to double check this
                 Nothing here to stop someone from just
-                adding a transaction that didn't come 
+                adding a transaction that didn't come
                 from a contract.
         """
         try:
+            # First check that the hash is correct
+            if self.public_key:
+                if not verifyHash(self):
+                    return False
+
             blocknumber = block.blockNumber
             computedTransactions = self.exec(blockchain, blocknumber)
             jsonTransactions = [tx.jsonize() for tx in computedTransactions]
@@ -250,9 +269,36 @@ class ContractInvokeTransaction(Transaction):
     This holds all the operations a transaction
     can do with a blockchain.
 
-    Typically resorted for all use in the exec 
+    Typically resorted for all use in the exec
     method or validation of transactions
 """
+
+
+def verifyHash(transaction):
+    if isinstance(transaction, Transaction):
+        if transaction.creator != transaction.public_key:
+            return False
+
+        hash = hashlib.sha256(json.dumps(
+            transaction.jsonize()).encode("UTF-8")).hexdigest()
+
+        public_key = crypt.deserialize_public_key(
+            bytes(transaction.public_key, encoding="UTF-8"))
+
+        return crypt.verify(transaction.hash, hash.encode("UTF-8"), public_key)
+    return False
+
+
+def signHash(transaction, private_key):
+    """
+        Signs the hash of the transaction
+    """
+    if isinstance(transaction, Transaction):
+        hash = hashlib.sha256(json.dumps(
+            transaction.jsonize()).encode("UTF-8")).hexdigest()
+
+        signedHash = crypt.sign(hash.encode("UTF-8"), private_key)
+        transaction.hash = signedHash
 
 
 def findContract(blockchain, contract_id):

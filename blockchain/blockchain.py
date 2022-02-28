@@ -1,6 +1,8 @@
 from blockchain import Block
 from time import time
 from multithreading import ProtectedList
+from random import Random, randint
+from sys import maxsize
 
 
 class Blockchain:
@@ -64,6 +66,13 @@ class Blockchain:
 
         return True
 
+    def is_prev_hash_in_chain(self, block):
+        """ Checks is block's prev hash is in chain """
+        for b in reversed(self.chain):
+            if b.generate_hash() == block.previousHash:
+                return b.blockNumber
+        return False
+
     def is_block_in_chain(self, block):
         """ Checks if a block is in chain """
         for b in self.chain:
@@ -83,7 +92,21 @@ class Blockchain:
 
         return True
 
-    def mine_block(self, data):
+    def copy(self, blockNumber=None):
+        """ 
+            Creates a copy of the blockchain object
+            If blockNumber supplied, copy chain up to a point
+        """
+
+        newChain = Blockchain(target=self.target,
+                              miningWindow=self.miningWindow)
+        if blockNumber:
+            newChain.chain.extend(self.chain[:blockNumber + 1])
+        else:
+            newChain.chain.extend(self.chain)
+        return newChain
+
+    def mine_block(self, data, miner=""):
         """ Method to do PoW algorithm and return a valid block """
 
         target = self.target
@@ -91,11 +114,12 @@ class Blockchain:
         lastBlockHash = lastBlock.generate_hash()
 
         newBlock = Block(blockNumber=lastBlock.blockNumber + 1,
-                         previousHash=lastBlockHash, data=data)
+                         previousHash=lastBlockHash, data=data, miner=miner)
         timeInterval = time()
 
         while not newBlock.generate_hash().startswith(target):
             newBlock.nonce += 1
+            # newBlock.nonce = randint(0, maxsize - 1)
             if (time() - timeInterval) > self.miningWindow:
                 timeInterval = time()
                 newBlock.timestamp = timeInterval

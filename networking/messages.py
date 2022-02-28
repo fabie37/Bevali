@@ -40,8 +40,21 @@ class ConnectMessage(Message):
 
                     # Alert Application new peer connected
                     peerRouter.newPeerQueue.put(self.fromPeer)
+
+                    # TESTING
+                    for peerAddress in peerRouter.peerAddressToSocket.keys():
+                        if (peerAddress != self.fromPeer):
+                            toPeer = peerAddress
+                            fromPeer = (peerRouter.hostname, peerRouter.port)
+                            newPeer = self.fromPeer
+
+                            # Tell my peers to connect to new peer
+                            updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
+                            peerRouter.txbuffer.put(updateMsg)
+
                 else:
-                    print("Socket already here!")
+                    # Socket already here
+                    pass
 
             # Accept the connection
             toPeer = self.fromPeer
@@ -49,7 +62,8 @@ class ConnectMessage(Message):
             acceptMsg = AcceptedConnectMessage(toPeer, fromPeer)
             peerRouter.txbuffer.put(acceptMsg)
         else:
-            print("No source socket found!\n")
+            # No source socket found
+            pass
 
 
 class AcceptedConnectMessage(Message):
@@ -63,25 +77,26 @@ class AcceptedConnectMessage(Message):
                 peerRouter.signalList[address].notify()
         except Exception:
             # No signal exists! Ignore
-            print("No such signal exists!")
+            pass
 
 
 class PeerRequestMessage(Message):
-    """ Message to send if you want a peer to tell their peers to conenct to you"""
+    """ Message to send if you want a peer to tell their peers to connect to you"""
 
     def __init__(self, toPeer, fromPeer):
         super().__init__(toPeer, fromPeer)
 
     def open(self, peerRouter):
-        for peerAddress in peerRouter.peerAddressToSocket.keys():
-            if (peerAddress != self.fromPeer):
-                toPeer = peerAddress
-                fromPeer = (peerRouter.hostname, peerRouter.port)
-                newPeer = self.fromPeer
+        with peerRouter.peerLock:
+            for peerAddress in peerRouter.peerAddressToSocket.keys():
+                if (peerAddress != self.fromPeer):
+                    toPeer = peerAddress
+                    fromPeer = (peerRouter.hostname, peerRouter.port)
+                    newPeer = self.fromPeer
 
-                # Tell my peers to connect to new peer
-                updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
-                peerRouter.txbuffer.put(updateMsg)
+                    # Tell my peers to connect to new peer
+                    updateMsg = NewPeerUpdateMessage(toPeer, fromPeer, newPeer)
+                    peerRouter.txbuffer.put(updateMsg)
 
 
 class NewPeerUpdateMessage(Message):

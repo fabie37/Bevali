@@ -9,12 +9,13 @@ class Block:
     """ Class to encapsulate the blocks within the blockchain. """
 
     def __init__(self, blockNumber=0, previousHash=0, data=[],
-                 nonce=0, timestamp=time.time()):
+                 nonce=0, timestamp=time.time(), miner=""):
         self.blockNumber = blockNumber
         self.previousHash = previousHash
         self.nonce = nonce
         self.data = data
         self.timestamp = timestamp
+        self.miner = miner
 
     def add_data(self, data):
         """ Adds a data element to the block """
@@ -41,11 +42,12 @@ class Block:
             "previousHash": self.previousHash,
             "nonce": self.nonce,
             "data": datajson,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
+            "miner": self.miner
         }
         blockJson = json.dumps(blockObject)
         hash = hashlib.sha256()
-        hash.update(blockJson.encode('ascii'))
+        hash.update(blockJson.encode('UTF-8'))
         return hash.hexdigest()
 
     def __eq__(self, other):
