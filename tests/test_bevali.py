@@ -79,24 +79,23 @@ def test_peer_watch_get_blockchain_on_connect():
     # 2. Bob and alice connect
     alice.connectToNode(bob.ip, bob.port)
     sleep(3)
-    block = alice.blockchain.mine_block("hello")
-    alice.blockchain.add_block(block)
+    alice._mine("block")
     sleep(3)
     # 3. Carol connects to bob and gets alice's blockchain too
     carol.connectToNode(bob.ip, bob.port)
     sleep(3)
 
     # 4. We then check if carol got alice's blockchain
-    bothChainsThere = True
+    carolgotBlockchain = True
 
-    if len(carol.blockchain.chain) != BLOCKCHAIN_SIZE + 2 or len(carol.secondaryChains[0].chain) != BLOCKCHAIN_SIZE + 1:
-        bothChainsThere = False
+    if len(carol.blockchain.chain) != BLOCKCHAIN_SIZE + 2:
+        carolgotBlockchain = False
 
     alice.stop()
     bob.stop()
     carol.stop()
 
-    assert(bothChainsThere)
+    assert(carolgotBlockchain)
 
 
 def with_x_peers_check_blockchain_on_connect(x):
@@ -108,6 +107,7 @@ def with_x_peers_check_blockchain_on_connect(x):
         peers.append(peer)
         peer.start()
 
+    sleep(15)
     # Make first peer have a blockchain
     sample_blockchain(peers[0])
 
@@ -189,6 +189,8 @@ def test_send_transaction():
     invoke = ContractInvokeTransaction("123", "123", data="Hello")
     update = ContractUpdateTranscation("123", "234", {1: 123})
 
+    sleep(2)
+
     alice.connectToNode(bob.ip, bob.port)
     carol.connectToNode(bob.ip, bob.port)
 
@@ -219,6 +221,7 @@ def test_transaction_mined():
     alice.start()
     bob.start()
     carol.start()
+    sleep(3)
     sample_blockchain(bob)
 
     # Bob will be a minner
@@ -451,11 +454,12 @@ def test_connect():
     alice = Bevali(LOCAL_HOST, PORT_START)
     alice.createNewChain()
     alice.start()
-
+    sleep(3)
     peers = []
     for i in range(1, 10):
         peer = Bevali(LOCAL_HOST, PORT_START + i)
         peer.start()
+        sleep(0.5)
         peer.connectToNode(LOCAL_HOST, PORT_START)
         peers.append(peer)
 
@@ -465,10 +469,11 @@ def test_connect():
     for peer in peers:
         connections.append(len(peer.router.socketAddressToPeerAddress))
 
+    connections.append(len(alice.router.socketAddressToPeerAddress))
     for peer in peers:
         peer.stop()
     alice.stop()
-    assert(sum(connections) == 9 * 9)
+    assert(sum(connections) == 9 + 9)
 
 
 def test_encrypted_transaction():

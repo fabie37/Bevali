@@ -1,5 +1,4 @@
 from enum import Enum
-from http import server
 import logging
 
 """ Networking constants """

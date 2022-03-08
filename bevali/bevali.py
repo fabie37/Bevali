@@ -32,7 +32,7 @@ class Bevali():
         self.requests = Queue()
 
         # Handles all networking
-        self.router = PeerRouter(ip, port)
+        self.router = PeerRouter(ip, port, mesh=False)
 
         # Ground Truth blockchain
         self.blockchainLock = RLock()
@@ -166,7 +166,7 @@ class Bevali():
     def connectToNode(self, ip, port):
         """ Connects to an existing node in blockchain """
         # 1. Connect to node in peer
-        self.router.getPeers(ip, port)
+        self.router.connect(ip, port, block=True, duration=60)
 
         # 2. Get blockchain from peer
         blockchainReq = BlockchainRequestMessage(self.ip, self.port)
