@@ -9,7 +9,7 @@ LOCAL_HOST = "127.0.0.1"
 PORT_START = 1200
 
 
-def connect_x_peers_together(x):
+def connect_x_peers_together(x, delay=3):
     peer_list = []
     for i in range(x):
         peer_list.append(PeerRouter(LOCAL_HOST, PORT_START + i))
@@ -19,7 +19,7 @@ def connect_x_peers_together(x):
         for peer in peer_list[z + 1:]:
             peer_list[z].connect(peer.hostname, peer.port)
 
-    sleep(log(x) * 3)
+    sleep(log(x) * delay)
 
     connected_peers_per_peer = []
     for peer in peer_list:
@@ -44,7 +44,7 @@ def test_connect_10_peers():
 
 
 def test_connect_100_peers():
-    assert(connect_x_peers_together(100) == 100 * (100 - 1))
+    assert(connect_x_peers_together(100, delay=5) == 100 * (100 - 1))
 
 
 def get_x_peers_from_peer(x):
@@ -389,3 +389,25 @@ def test_message_routing_complex_cycle():
 
     stop(peers)
     assert(messages["0"] == 8 and messages["5"] == 8 and messages["8"] == 8)
+
+
+def test_connect_x_no_mesh():
+    x = 100
+    peers = []
+    for i in range(x):
+        router = PeerRouter(LOCAL_HOST, PORT_START + i, mesh=False)
+        peers.append(router)
+        router.start()
+
+    for index, peer in enumerate(peers[1:]):
+        peers[index].connect(peer.hostname, peer.port)
+
+    sleep(20)
+
+    connections = []
+    for peer in peers:
+        connections.append(len(peer.peerAddressToSocket))
+
+    stop(peers)
+
+    assert(sum(connections) == ((x - 2) * 2) + 2)
