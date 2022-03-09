@@ -1,4 +1,11 @@
 # Correct Module Referencing
+import os
+import sys
+
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
 import pandas as pd
 from bevali import Bevali
 from tests.test_contracts import import_code
@@ -10,14 +17,7 @@ from multiprocessing.connection import Listener, Client
 from blockchain.blockchain import Blockchain, Block
 from transactions import ContractCreateTransaction, ContractInvokeTransaction, findContract, Transaction
 from random import randrange
-import os
-import sys
 
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
-
-# Imports
 
 # Constants
 BLOCKCHAIN_IP = '127.0.0.1'
