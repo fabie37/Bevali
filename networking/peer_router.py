@@ -2,34 +2,36 @@ import socket
 import select
 import pickle
 from queue import Empty, Queue
+from time import time
+from uuid import uuid4
 from networking import HEADERSIZE
 from networking import ServerStatus
 from networking import serverLogger
 from multithreading import ThreadManager
 from multithreading import ManagedThread
 from multithreading import ThreadStatus
-from threading import Lock
+from threading import Lock, RLock
 from threading import Condition
-
-
-from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message, PeerRequestMessage
+from networking.messages import ConnectMessage, DataMessage, GetPeerListMessage, Message, BroadcastDataMessage
 
 
 class PeerRouter:
     """ Class to encapsulate handling """
 
-    def __init__(self, hostname, port, id=None):
+    def __init__(self, hostname, port, mesh=True):
 
         # Server Configuration Settings
         self.hostname = hostname
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.serverSocket.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
         self.serverSocket.settimeout(None)
 
+        # Defines if network is mesh
+        self.mesh = mesh
+
         # Define Peers in sever
-        self.peerLock = Lock()
+        self.peerLock = RLock()
         self.socketList = [self.serverSocket]
         self.socketAddressToPeerAddress = {}
         self.peerAddressToSocket = {}  # (Peer List)
@@ -73,6 +75,24 @@ class PeerRouter:
         # The message thread then handles the messages and adds any sent data to the databuffer
         # for another thread to accept and use.
         self.databuffer = Queue()
+
+        # Used to stop broadcast collisions
+        self.seenLock = Lock()
+        self.hasSeenMessage = {}
+
+    def getID(self):
+        """
+            Returns the id of peer (address and port)
+        """
+        return (self.hostname, self.port)
+
+    def seenMessage(self, msg):
+        """
+            Records that peer has seen a message
+        """
+        with self.seenLock:
+            if isinstance(msg, Message):
+                self.hasSeenMessage[msg.uid] = time()
 
     def start(self):
         """ Starts all threads associated with Server Class """
@@ -125,8 +145,8 @@ class PeerRouter:
             This should hopefully solve the issue of two peers trying to connect to eachother at the same time.
             As there is no new, you only even need to connect to one peer.
         """
-        fromPeer = (self.hostname, self.port)
-        toPeer = (ip, port)
+        # fromPeer = (self.hostname, self.port)
+        # toPeer = (ip, port)
 
         # First connect
         self.connect(ip, port, block=True, duration=60)
@@ -193,10 +213,17 @@ class PeerRouter:
             Broadcasts data to all other peers in network some data
         """
         fromPeer = (self.hostname, self.port)
+        messageID = uuid4()
         with self.peerLock:
             for peerAddress in self.peerAddressToSocket.keys():
+                if self.mesh:
+                    dataMsg = DataMessage(None, fromPeer, data)
+                else:
+                    dataMsg = BroadcastDataMessage(None, fromPeer, data)
                 toPeer = peerAddress
-                dataMsg = DataMessage(toPeer, fromPeer, data)
+                dataMsg.toPeer = toPeer
+                dataMsg.uid = messageID
+                self.seenMessage(dataMsg)
                 self.txbuffer.put(dataMsg)
 
     def recv(self, peer_socket):
@@ -262,8 +289,6 @@ class PeerRouter:
                                         socket.AF_INET, socket.SOCK_STREAM)
                                     sock.setsockopt(
                                         socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                                    sock.ioctl(
-                                        socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
                                     sock.connect(msg.toPeer)
                                     sock.settimeout(None)
                                     # Socket List [... sock]
@@ -376,6 +401,8 @@ class PeerRouter:
                     msg.open(self)
                 except Empty:
                     serverLogger.info("No messages to open.")
+                except Exception as e:
+                    print(e)
         except Exception:
             serverLogger.exception("Exception raised in message thread.")
             with _thread["lock"]:

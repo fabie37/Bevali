@@ -8,20 +8,19 @@ image: python:3.8
 pipelines:
   default:
     - parallel:
-      - step:
-          runs-on: self.hosted
-          name: Test
-          caches:
-            - pip
-          script:
-            - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            - pip install pytest
-            - pytest -v tests/ --ignore=tests/test_networking.py --junitxml=test-reports/report.xml
-      - step:
-          runs-on: self.hosted
-          name: Lint code
-          script:
-            # Enforce style consistency across Python projects https://flake8.pycqa.org/en/latest/manpage.html
-            - pip install flake8
-            - flake8 . --extend-exclude=dist,build --show-source --statistics --ignore=E501,W291 --per-file-ignores="__init__.py:F401"
-            
+        - step:
+            runs-on: self.hosted
+            name: Test
+            caches:
+              - pip
+            script:
+              - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+              - pip install pytest
+              - pytest -v tests/ --ignore=tests/test_networking.py --junitxml=test-reports/report.xml
+        - step:
+            runs-on: self.hosted
+            name: Lint code
+            script:
+              # Enforce style consistency across Python projects https://flake8.pycqa.org/en/latest/manpage.html
+              - pip install flake8
+              - flake8 . --extend-exclude=dist,build --show-source --statistics --ignore=E501,W291,W503,W504 --per-file-ignores="__init__.py:F401" --exclude="contract*.py evaluation/* commander.py"

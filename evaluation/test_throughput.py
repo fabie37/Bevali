@@ -1,5 +1,4 @@
 # Correct Module Referencing
-from random import randrange
 import os
 import sys
 
@@ -7,17 +6,18 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
-# Imports
-from transactions import ContractCreateTransaction, ContractInvokeTransaction, findContract, Transaction
-from blockchain.blockchain import Blockchain, Block
-from multiprocessing.connection import Listener, Client
-from multiprocessing import Process, JoinableQueue as MQ, Manager
-from multiprocessing.managers import SyncManager
-from threading import Lock
-from time import time, sleep
-from tests.test_contracts import import_code
-from bevali import Bevali
 import pandas as pd
+from bevali import Bevali
+from tests.test_contracts import import_code
+from time import time, sleep
+from threading import Lock
+from multiprocessing.managers import SyncManager
+from multiprocessing import Process, JoinableQueue as MQ, Manager
+from multiprocessing.connection import Listener, Client
+from blockchain.blockchain import Blockchain, Block
+from transactions import ContractCreateTransaction, ContractInvokeTransaction, findContract, Transaction
+from random import randrange
+
 
 # Constants
 BLOCKCHAIN_IP = '127.0.0.1'
@@ -126,7 +126,8 @@ def run_node(ip, port, miner, peers, txs, queue, callbackQ):
     node = Bevali(ip, port)
     node.start()
     node.connectToNode(BLOCKCHAIN_IP, WATCHERPORT)
-    wait_for_x_connections(node, peers - 1)
+    wait_for_x_connections(node, 1)
+    sleep(10)
 
     # Tell main process, all peers found
     callbackQ.put("found")
@@ -182,6 +183,7 @@ def experiment_start(num_peers, num_miners, num_tx, difficulty):
     """
         Sets up params for experiement & recording
     """
+    print("Starting experiment...")
     qq = MQ()
     manager = Manager()
     callbackQ = manager.Queue()
@@ -272,15 +274,16 @@ def experiment_start(num_peers, num_miners, num_tx, difficulty):
 
 
 if __name__ == '__main__':
-
     txs = 100
-    results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
-    for diff in ['000']:
+    results = pd.DataFrame(
+        columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
+    for diff in ['0', '00', '000']:
         demochain = create_demo_chain(diff)
-        for miners in [1,2,3]:
-            for peers in [8, 10, 12, 14]:
-                results = pd.concat([results, experiment_start(peers, miners, txs, diff)])
-                results.to_csv("evaluation/eval_throughput.csv", mode='a', header = not os.path.exists("evaluation/eval_throughput.csv"))
-                results = pd.DataFrame(columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
-
-
+        for miners in [1, 2, 3]:
+            for peers in [8, 10, 12, 14, 16, 18, 20]:
+                results = pd.concat(
+                    [results, experiment_start(peers, miners, txs, diff)])
+                results.to_csv("evaluation/eval_throughput.csv", mode='a',
+                               header=not os.path.exists("evaluation/eval_throughput.csv"))
+                results = pd.DataFrame(
+                    columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])

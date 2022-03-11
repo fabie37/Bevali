@@ -5,10 +5,10 @@ from datahandler import DataHandler
 from datahandler import BlockChainSink, BlockSink, PoolSink, RequestsSink
 from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
-from threading import Lock, RLock, Condition
+from threading import Lock, RLock
 from blockchain import Blockchain, Block
-from transactions import Transaction, signHash, verifyHash
-from encryption import get_public_key, generate_private_key, serialize_public_key, deserialize_public_key, verify, sign
+from transactions import Transaction, signHash
+from encryption import get_public_key, generate_private_key, serialize_public_key
 
 TRANSACTIONS_TO_MINE = 5
 RELEASE_TRANSACTIONS_AFTER = 2
@@ -32,7 +32,7 @@ class Bevali():
         self.requests = Queue()
 
         # Handles all networking
-        self.router = PeerRouter(ip, port)
+        self.router = PeerRouter(ip, port, mesh=False)
 
         # Ground Truth blockchain
         self.blockchainLock = RLock()
@@ -88,6 +88,9 @@ class Bevali():
         # Thread Queue to signal custom actions
         self.signal = Queue()
 
+        # Disable checks, for testing purposes
+        self.disableChecks = False
+
     def start(self):
         """
         Starts all related threads:
@@ -124,6 +127,9 @@ class Bevali():
         if self.isMinning:
             self.minningManager.stopThreads()
             self.isMinning = False
+            self.minningManager.addThread(ManagedThread(
+                target=self.minningThread, name="Minning Thread"
+            ))
 
     def getSerialPublicKey(self):
         """
@@ -157,7 +163,10 @@ class Bevali():
         # If minning successful, broadcast to peers new block
         with self.blockchainLock:
             if len(mainCopy.chain) == len(self.blockchain.chain):
-                self.processBlock(block)
+                if not self.disableChecks:
+                    self.processBlock(block)
+                else:
+                    self.blockchain.chain.append(block)
                 self.router.broadcast(block)
                 return True
 
@@ -166,7 +175,7 @@ class Bevali():
     def connectToNode(self, ip, port):
         """ Connects to an existing node in blockchain """
         # 1. Connect to node in peer
-        self.router.getPeers(ip, port)
+        self.router.connect(ip, port, block=True, duration=60)
 
         # 2. Get blockchain from peer
         blockchainReq = BlockchainRequestMessage(self.ip, self.port)

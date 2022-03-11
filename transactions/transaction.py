@@ -9,7 +9,6 @@ from time import time
 import encryption as crypt
 import hashlib
 import json
-import pickle
 
 
 class Transaction():

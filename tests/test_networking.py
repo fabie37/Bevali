@@ -9,7 +9,7 @@ LOCAL_HOST = "127.0.0.1"
 PORT_START = 1200
 
 
-def connect_x_peers_together(x):
+def connect_x_peers_together(x, delay=3):
     peer_list = []
     for i in range(x):
         peer_list.append(PeerRouter(LOCAL_HOST, PORT_START + i))
@@ -19,7 +19,7 @@ def connect_x_peers_together(x):
         for peer in peer_list[z + 1:]:
             peer_list[z].connect(peer.hostname, peer.port)
 
-    sleep(log(x) * 3)
+    sleep(log(x) * delay)
 
     connected_peers_per_peer = []
     for peer in peer_list:
@@ -40,11 +40,11 @@ def test_connect_3_peers():
 
 
 def test_connect_10_peers():
-    assert(connect_x_peers_together(10) == 10 * (10 - 1))
+    assert(connect_x_peers_together(10, delay=4) == 10 * (10 - 1))
 
 
 def test_connect_100_peers():
-    assert(connect_x_peers_together(100) == 100 * (100 - 1))
+    assert(connect_x_peers_together(100, delay=5) == 100 * (100 - 1))
 
 
 def get_x_peers_from_peer(x):
@@ -273,3 +273,141 @@ def test_remote_code_execution():
     bob.stop()
     alice.stop()
     assert(code_locals['rtn'] == 9)
+
+
+def test_message_routing():
+    """
+        Basic connect to 3 peers and see if they all get the same message
+    """
+
+    alice = PeerRouter(LOCAL_HOST, PORT_START, mesh=False)
+    bob = PeerRouter(LOCAL_HOST, PORT_START + 1, mesh=False)
+    carol = PeerRouter(LOCAL_HOST, PORT_START + 2, mesh=False)
+
+    alice.start()
+    bob.start()
+    carol.start()
+
+    sleep(1)
+
+    alice.connect(bob.hostname, bob.port)
+    bob.connect(carol.hostname, carol.port)
+    sleep(1)
+
+    alice.broadcast("Hello!")
+
+    sleep(5)
+    messages = 0
+    messages += bob.databuffer.qsize()
+    messages += carol.databuffer.qsize()
+    alice.stop()
+    bob.stop()
+    carol.stop()
+    assert(messages == 2)
+
+
+def test_message_routing_3_cycle():
+    """
+        Tests that a cycle doesn't send data more than once to same peer
+    """
+
+    alice = PeerRouter(LOCAL_HOST, PORT_START, mesh=False)
+    bob = PeerRouter(LOCAL_HOST, PORT_START + 1, mesh=False)
+    carol = PeerRouter(LOCAL_HOST, PORT_START + 2, mesh=False)
+
+    alice.start()
+    bob.start()
+    carol.start()
+
+    sleep(3)
+    alice.connect(bob.hostname, bob.port)
+    sleep(0.5)
+    bob.connect(carol.hostname, carol.port)
+    sleep(0.5)
+    carol.connect(alice.hostname, alice.port)
+    sleep(3)
+
+    alice.broadcast("Hello!")
+
+    sleep(10)
+    messages = 0
+    messages += bob.databuffer.qsize()
+    messages += carol.databuffer.qsize()
+    messages += alice.databuffer.qsize()
+    alice.stop()
+    bob.stop()
+    carol.stop()
+    assert(messages == 2)
+
+
+def connect_together(host, peerList, indexList):
+    for peer in [peerList[i] for i in indexList]:
+        host.connect(peer.hostname, peer.port)
+        sleep(2)
+
+
+def stop(peerList):
+    for peer in peerList:
+        peer.stop()
+
+
+def test_message_routing_complex_cycle():
+    """
+        Tests a graph that is more involved
+    """
+    peers = []
+    for i in range(9):
+        router = PeerRouter(LOCAL_HOST, PORT_START + i, mesh=False)
+        peers.append(router)
+        router.start()
+
+    sleep(3)
+
+    connect_together(peers[0], peers, [1, 2])
+    connect_together(peers[1], peers, [5, 4])
+    connect_together(peers[2], peers, [6, 7, 3])
+    connect_together(peers[3], peers, [5, 4])
+    connect_together(peers[4], peers, [5])
+    connect_together(peers[6], peers, [7])
+    connect_together(peers[7], peers, [8])
+    sleep(5)
+
+    peers[0].broadcast("0")
+    sleep(1)
+    peers[5].broadcast("5")
+    sleep(1)
+    peers[8].broadcast("8")
+    sleep(1)
+
+    sleep(20)
+    messages = {"0": 0, "5": 0, "8": 0}
+
+    for peer in peers:
+        while peer.databuffer.qsize() != 0:
+            msg = peer.databuffer.get()[1]
+            messages[msg] += 1
+
+    stop(peers)
+    assert(messages["0"] == 8 and messages["5"] == 8 and messages["8"] == 8)
+
+
+def test_connect_x_no_mesh():
+    x = 100
+    peers = []
+    for i in range(x):
+        router = PeerRouter(LOCAL_HOST, PORT_START + i, mesh=False)
+        peers.append(router)
+        router.start()
+
+    for index, peer in enumerate(peers[1:]):
+        peers[index].connect(peer.hostname, peer.port)
+
+    sleep(20)
+
+    connections = []
+    for peer in peers:
+        connections.append(len(peer.peerAddressToSocket))
+
+    stop(peers)
+
+    assert(sum(connections) == ((x - 2) * 2) + 2)

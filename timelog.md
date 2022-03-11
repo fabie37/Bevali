@@ -243,3 +243,26 @@
 * *2 hours* merging encrpytion branch to main 
 * *3 hours* started requirements/analysis section
 
+### Week 23
+
+## 01 March 2022
+* *7 hours* Continued writing requirements/analysis section
+
+## 02 March 2022 
+* *8 hours* Finished writting requirements/analysis section
+
+## 03 March 2022
+* *8 hours* Writting the design section of my dissertation
+
+## 04 March 2022
+* *6 hours* Finished writting design section of dissertation.
+
+### Week 24
+
+## 08 March 2022
+* *1 hours* Started writing implementation details on dissertaion
+* *7 hours* fixed networking bug.
+
+## 09 March 2022
+* *8 hours* Continued writting implementation of blockchain on dissetation.
+
