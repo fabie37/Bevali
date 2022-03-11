@@ -60,6 +60,8 @@ class ThreadManager:
                 self.closeSignal.wait()
                 self.decrementActiveThreads()
 
+        self.threads = []
+
         if (self.activeThreads == 0):
             return True
         else:

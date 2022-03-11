@@ -88,6 +88,9 @@ class Bevali():
         # Thread Queue to signal custom actions
         self.signal = Queue()
 
+        # Disable checks, for testing purposes
+        self.disableChecks = False
+
     def start(self):
         """
         Starts all related threads:
@@ -124,6 +127,9 @@ class Bevali():
         if self.isMinning:
             self.minningManager.stopThreads()
             self.isMinning = False
+            self.minningManager.addThread(ManagedThread(
+                target=self.minningThread, name="Minning Thread"
+            ))
 
     def getSerialPublicKey(self):
         """
@@ -157,7 +163,10 @@ class Bevali():
         # If minning successful, broadcast to peers new block
         with self.blockchainLock:
             if len(mainCopy.chain) == len(self.blockchain.chain):
-                self.processBlock(block)
+                if not self.disableChecks:
+                    self.processBlock(block)
+                else:
+                    self.blockchain.chain.append(block)
                 self.router.broadcast(block)
                 return True
 

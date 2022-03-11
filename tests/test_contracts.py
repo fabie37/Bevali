@@ -14,12 +14,17 @@ def import_code(filename):
     return code
 
 
-def create_x_files(bevali, user_id, number_of_files):
+def create_x_files(bevali, user_id, number_of_files, permissionList=None):
     code = import_code("contract.py")
     for i in range(1, number_of_files + 1):
         memory = {"id": i}
-        state = {"permission_list": [
-            "Bob", "Alice"], "files_in_circulation": 1}
+        if not permissionList:
+            state = {"permission_list": [
+                "Bob", "Alice"], "files_in_circulation": 1}
+        else:
+            state = {"permission_list": [], "files_in_circulation": 1}
+            for id in permissionList:
+                state["permission_list"].append(id)
         fileContract = ContractCreateTransaction(
             user_id, i, code, memory, state)
         bevali.sendTransaction(fileContract)

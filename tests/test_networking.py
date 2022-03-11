@@ -40,7 +40,7 @@ def test_connect_3_peers():
 
 
 def test_connect_10_peers():
-    assert(connect_x_peers_together(10) == 10 * (10 - 1))
+    assert(connect_x_peers_together(10, delay=4) == 10 * (10 - 1))
 
 
 def test_connect_100_peers():
