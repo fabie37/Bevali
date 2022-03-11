@@ -3,7 +3,7 @@ from time import sleep
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
 from tests.test_bevali import sample_blockchain
-from tests.test_contracts import import_code, create_x_files
+from tests.test_contracts import create_x_files
 from transactions import ContractInvokeTransaction
 
 
