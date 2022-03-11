@@ -14,8 +14,8 @@ pipelines:
             caches:
               - pip
             script:
-            #  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            #  - pip install pytest
+              #  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+              - pip install pytest
             #  - pytest -v tests/ --ignore=tests/test_networking.py --junitxml=test-reports/report.xml
         - step:
             runs-on: self.hosted
