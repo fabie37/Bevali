@@ -268,7 +268,7 @@ def test_contract_executed():
 
     # Alice will send the transaction to her peers
     code = ""
-    cwd = os.getcwd() + "\\tests\\"
+    cwd = os.getcwd() + "/tests/"
     with open(cwd + "contract_1.py", "r") as f:
         code = ''.join(f.readlines())
     memory = {}
@@ -312,7 +312,7 @@ def test_contract_state_updated():
 
     # Alice will send the transaction to her peers
     code = ""
-    cwd = os.getcwd() + "\\tests\\"
+    cwd = os.getcwd() + "/tests/"
     with open(cwd + "contract_2.py", "r") as f:
         code = ''.join(f.readlines())
     memory = {}
