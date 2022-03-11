@@ -5,10 +5,10 @@ from datahandler import DataHandler
 from datahandler import BlockChainSink, BlockSink, PoolSink, RequestsSink
 from datahandler import BlockchainRequestMessage
 from multithreading import ThreadManager, ProtectedList, ThreadStatus
-from threading import Lock, RLock, Condition
+from threading import Lock, RLock
 from blockchain import Blockchain, Block
-from transactions import Transaction, signHash, verifyHash
-from encryption import get_public_key, generate_private_key, serialize_public_key, deserialize_public_key, verify, sign
+from transactions import Transaction, signHash
+from encryption import get_public_key, generate_private_key, serialize_public_key
 
 TRANSACTIONS_TO_MINE = 5
 RELEASE_TRANSACTIONS_AFTER = 2

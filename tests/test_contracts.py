@@ -8,7 +8,7 @@ import os
 
 def import_code(filename):
     code = ""
-    cwd = os.getcwd() + "\\tests\\"
+    cwd = os.getcwd() + "/tests/"
     with open(cwd + filename, "r") as f:
         code = ''.join(f.readlines())
     return code

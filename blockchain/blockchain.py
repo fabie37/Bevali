@@ -1,8 +1,8 @@
 from blockchain import Block
 from time import time
 from multithreading import ProtectedList
-from random import Random, randint
-from sys import maxsize
+# from random import Random, randint
+# from sys import maxsize
 
 
 class Blockchain:

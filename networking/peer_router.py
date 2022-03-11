@@ -25,7 +25,6 @@ class PeerRouter:
         self.port = port
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.serverSocket.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
         self.serverSocket.settimeout(None)
 
         # Defines if network is mesh
@@ -290,8 +289,6 @@ class PeerRouter:
                                         socket.AF_INET, socket.SOCK_STREAM)
                                     sock.setsockopt(
                                         socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                                    sock.ioctl(
-                                        socket.SIO_KEEPALIVE_VALS, (1, 1000000, 9000))
                                     sock.connect(msg.toPeer)
                                     sock.settimeout(None)
                                     # Socket List [... sock]
