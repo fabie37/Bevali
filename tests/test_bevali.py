@@ -1,5 +1,4 @@
 
-from copy import copy, deepcopy
 from bevali import Bevali
 import blockchain
 from blockchain.block import Block
