@@ -1,8 +1,8 @@
 from blockchain import Block
 from time import time
 from multithreading import ProtectedList
-# from random import Random, randint
-# from sys import maxsize
+from random import Random, randint
+from sys import maxsize
 
 
 class Blockchain:
@@ -118,8 +118,8 @@ class Blockchain:
         timeInterval = time()
 
         while not newBlock.generate_hash().startswith(target):
-            newBlock.nonce += 1
-            # newBlock.nonce = randint(0, maxsize - 1)
+            # newBlock.nonce += 1
+            newBlock.nonce = randint(0, maxsize - 1)
             if (time() - timeInterval) > self.miningWindow:
                 timeInterval = time()
                 newBlock.timestamp = timeInterval

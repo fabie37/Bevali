@@ -4,7 +4,7 @@ import logging
 """ Networking constants """
 
 
-HEADERSIZE = 20
+HEADERSIZE = 40
 
 """ Networking enumations """
 

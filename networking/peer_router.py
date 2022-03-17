@@ -235,8 +235,13 @@ class PeerRouter:
                 return False
 
             message_length = int(message_header.decode("utf-8").strip())
-            client_msg = peer_socket.recv(message_length)
-            rx_data = pickle.loads(client_msg)
+            received_bytes = message_length
+            client_msg = []
+            while received_bytes > 0:
+                packet = peer_socket.recv(received_bytes)
+                client_msg.append(packet)
+                received_bytes -= len(packet)
+            rx_data = pickle.loads(b"".join(client_msg))
             return rx_data
         except Exception as e:
             print(e)
@@ -403,7 +408,7 @@ class PeerRouter:
                     serverLogger.info("No messages to open.")
                 except Exception as e:
                     print(e)
-        except Exception:
+        except Exception as e:
             serverLogger.exception("Exception raised in message thread.")
             with _thread["lock"]:
                 _thread["status"] = ThreadStatus.ERROR

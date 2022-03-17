@@ -28,14 +28,14 @@ COMMANDER_PORT = 5000
 demochain = None
 
 
-def create_demo_chain(diff):
+def create_demo_chain(diff='0', contracts=100):
     """
         Replicates 100 contracts with the same persimissions
     """
     demochain = Blockchain(target=diff)
     demochain.add_block(Block())
     code = import_code("contract.py")
-    for x in range(0, 100):
+    for x in range(0, contracts):
         memory = {"id": x}
         state = {"permission_list": [1, 2], "files_in_circulation": 1}
         file = ContractCreateTransaction(
@@ -179,7 +179,7 @@ def throughput_experiment(node, txs, queue):
     queue.put(total_time)
 
 
-def experiment_start(num_peers, num_miners, num_tx, difficulty):
+def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     """
         Sets up params for experiement & recording
     """
@@ -258,12 +258,13 @@ def experiment_start(num_peers, num_miners, num_tx, difficulty):
     while not qq.empty():
         times.append(qq.get())
 
-    cols = ["Peers", "Miners", "Transactions", "Time", "Difficulty"]
+    cols = ["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"]
     data = []
     for t in times:
         data.append([
             num_peers,
             num_miners,
+            num_contracts,
             num_tx,
             t,
             len(difficulty)
@@ -272,18 +273,86 @@ def experiment_start(num_peers, num_miners, num_tx, difficulty):
     results = pd.DataFrame(data, columns=cols)
     return results
 
-
 if __name__ == '__main__':
+    print("Experiment 1:")
     txs = 100
+    contracts_list = [100]
+    diff_list = ['0']
+    miner_list = [1]
+    peer_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+    output = "evaluation/experiment_1.csv"
+
     results = pd.DataFrame(
-        columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
-    for diff in ['0', '00', '000']:
-        demochain = create_demo_chain(diff)
-        for miners in [1, 2, 3]:
-            for peers in [8, 10, 12, 14, 16, 18, 20]:
-                results = pd.concat(
-                    [results, experiment_start(peers, miners, txs, diff)])
-                results.to_csv("evaluation/eval_throughput.csv", mode='a',
-                               header=not os.path.exists("evaluation/eval_throughput.csv"))
-                results = pd.DataFrame(
-                    columns=["Peers", "Miners", "Transactions", "Time", "Difficulty"])
+        columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+    for diff in diff_list:
+        for contracts in contracts_list:
+            demochain = create_demo_chain(diff, contracts)
+            for miners in miner_list:
+                for peers in peer_list:
+                    results = pd.concat(
+                        [results, experiment_start(peers, miners, contracts, txs, diff)])
+                    results.to_csv(output, mode='a',
+                                header=not os.path.exists(output))
+                    results = pd.DataFrame(
+                        columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+
+
+    print("Experiment 2:")
+    txs = 100
+    contracts_list = [100]
+    diff_list = ['0']
+    miner_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    peer_list = [16]
+    output = "evaluation/experiment_2.csv"
+
+    results = pd.DataFrame(
+    columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+    for diff in diff_list:
+        for contracts in contracts_list:
+            demochain = create_demo_chain(diff, contracts)
+            for miners in miner_list:
+                for peers in peer_list:
+                    results = pd.concat(
+                        [results, experiment_start(peers, miners, contracts, txs, diff)])
+                    results.to_csv(output, mode='a',
+                                header=not os.path.exists(output))
+                    results = pd.DataFrame(
+                        columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+
+    print("Experiment 3:")
+    txs = 100
+    contracts_list = [5000, 10000, 15000, 20000, 25000, 30000]
+    diff_list = ['0']
+    miner_list = [1]
+    peer_list = [16]
+    output = "evaluation/experiment_3.csv"
+
+    results = pd.DataFrame(
+    columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+    for diff in diff_list:
+        for contracts in contracts_list:
+            demochain = create_demo_chain(diff, contracts)
+            for miners in miner_list:
+                for peers in peer_list:
+                    results = pd.concat(
+                        [results, experiment_start(peers, miners, contracts, txs, diff)])
+                    results.to_csv(output, mode='a',
+                                header=not os.path.exists(output))
+                    results = pd.DataFrame(
+                        columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+
+
+    # txs = 100
+    # contracts = 100
+    # results = pd.DataFrame(
+    #     columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+    # for diff in ['0', '00', '000']:
+    #     demochain = create_demo_chain(diff, contracts)
+    #     for miners in [1, 2, 3]:
+    #         for peers in [8, 10, 12, 14, 16, 18, 20]:
+    #             results = pd.concat(
+    #                 [results, experiment_start(peers, miners, contracts, txs, diff)])
+    #             results.to_csv("evaluation/eval_throughput.csv", mode='a',
+    #                            header=not os.path.exists("evaluation/eval_throughput.csv"))
+    #             results = pd.DataFrame(
+    #                 columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
