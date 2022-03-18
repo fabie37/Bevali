@@ -204,6 +204,9 @@ class BroadcastDataMessage(Message):
                 for peerAddress in peerRouter.peerAddressToSocket.keys():
                     toSendTo.append(peerAddress)
 
+            # Don't include the person you received the message from
+            toSendTo.remove(self.fromPeer)
+
             for address in toSendTo:
                 fromPeer = peerRouter.getID()
                 toPeer = address

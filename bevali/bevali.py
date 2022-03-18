@@ -1,4 +1,4 @@
-from queue import Queue
+from queue import Empty, Queue
 from multithreading.managed_thread import ManagedThread
 from networking import PeerRouter
 from datahandler import DataHandler
@@ -9,8 +9,9 @@ from threading import Lock, RLock
 from blockchain import Blockchain, Block
 from transactions import Transaction, signHash
 from encryption import get_public_key, generate_private_key, serialize_public_key
+from time import sleep
 
-TRANSACTIONS_TO_MINE = 5
+TRANSACTIONS_TO_MINE = 10
 RELEASE_TRANSACTIONS_AFTER = 2
 
 
@@ -172,10 +173,10 @@ class Bevali():
 
         return False
 
-    def connectToNode(self, ip, port):
+    def connectToNode(self, ip, port, blocking=True):
         """ Connects to an existing node in blockchain """
         # 1. Connect to node in peer
-        self.router.connect(ip, port, block=True, duration=60)
+        self.router.connect(ip, port, block=blocking, duration=60)
 
         # 2. Get blockchain from peer
         blockchainReq = BlockchainRequestMessage(self.ip, self.port)
@@ -335,16 +336,21 @@ class Bevali():
         """
         with self.blockchainLock:
             if blockNumber := self.blockchain.is_prev_hash_in_chain(block):
+
                 newChain = self.blockchain.copy(blockNumber)
                 newChain.add_block(block)
 
                 # For evaluation purposes
                 self.signal.put("New Block")
 
+                # Release blocks
+                # self.releaseTransactionsFromNewBlock(block)
+
                 # Put main back into secondary chains
                 with self.secondaryChainsLock:
                     self.secondaryChains.append(newChain)
                 return True
+
         return False
 
     def addOrphanBlock(self, block):
@@ -437,30 +443,35 @@ class Bevali():
                     request = self.requests.get(block=True, timeout=0.1)
                     request.open(self)
                     self.requests.task_done()
-                except Exception:
+                except Empty:
                     # No requests available
                     pass
-
-                # 2. Process a incoming blocks
-                try:
-                    block = self.blocks.get(block=True, timeout=1)
-                    self.blocks.task_done()
-                    self.processBlock(block)
-                    # self.releaseTransactions()
                 except Exception:
-                    # No blocks available
-                    pass
+                    print("Exception raised processing request!")
 
-                # 3. Process a blockchain
+                # 2. Process a blockchain
                 try:
                     # Get blockchain
                     blockchain = self.blockchains.get(block=True, timeout=0.1)
                     self.processBlockchain(blockchain)
                     self.blockchains.task_done()
-
-                except Exception:
+                except Empty:
                     # No blockchain available
                     pass
+                except Exception:
+                    print("Exception Raised processing blockchain!")
+
+                # 3. Process a incoming blocks
+                try:
+                    block = self.blocks.get(block=True, timeout=0.1)
+                    self.blocks.task_done()
+                    self.processBlock(block)
+                    # self.releaseTransactions()
+                except Empty:
+                    # No blocks available
+                    pass
+                except Exception:
+                    print("Exception raised processing block!")
 
         except Exception:
             with _thread["lock"]:
@@ -495,6 +506,8 @@ class Bevali():
                         if isMined:
                             for tx in poolTxs:
                                 self.pool.remove(tx)
+
+                    sleep(0.1)
                 except (Exception):
                     # Something went wrong in minning, just try again
                     pass
@@ -517,7 +530,7 @@ class Bevali():
                         self.ip, self.port)
                     self.router.send(newPeer[0], newPeer[1], blockchainReq)
 
-                except Exception:
+                except Exception as e:
                     # No new peers
                     pass
 

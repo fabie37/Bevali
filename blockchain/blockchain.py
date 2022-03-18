@@ -1,7 +1,8 @@
 from blockchain import Block
 from time import time
 from multithreading import ProtectedList
-from random import Random, randint
+import random
+from random import randint
 from sys import maxsize
 
 
@@ -108,7 +109,7 @@ class Blockchain:
 
     def mine_block(self, data, miner=""):
         """ Method to do PoW algorithm and return a valid block """
-
+        # random.seed()
         target = self.target
         lastBlock = self.chain[-1]
         lastBlockHash = lastBlock.generate_hash()
@@ -119,6 +120,7 @@ class Blockchain:
 
         while not newBlock.generate_hash().startswith(target):
             # newBlock.nonce += 1
+            # newBlock.nonce = random.randint(0, maxsize - 1)
             newBlock.nonce = randint(0, maxsize - 1)
             if (time() - timeInterval) > self.miningWindow:
                 timeInterval = time()

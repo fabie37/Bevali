@@ -86,6 +86,13 @@ class PeerRouter:
         """
         return (self.hostname, self.port)
 
+    def seenMsgID(self, id):
+        """
+            Simliar to seenMessage, but takes an ID instead of a msg object
+        """
+        with self.seenLock:
+            self.hasSeenMessage[id] = time()
+
     def seenMessage(self, msg):
         """
             Records that peer has seen a message
@@ -214,6 +221,7 @@ class PeerRouter:
         """
         fromPeer = (self.hostname, self.port)
         messageID = uuid4()
+        # self.seenMsgID(messageID)
         with self.peerLock:
             for peerAddress in self.peerAddressToSocket.keys():
                 if self.mesh:
@@ -257,6 +265,7 @@ class PeerRouter:
 
             return serializedMsg
         except Exception:
+            print("Count not serialize message!")
             serverLogger.exception("Could not serialize message!")
             return None
 
@@ -266,6 +275,7 @@ class PeerRouter:
             msg = pickle.dumps(serializedMsg)
             return msg
         except Exception:
+            print("Could not deserialize message!")
             serverLogger.exception("Could not deserialize message!")
             return None
 
@@ -307,9 +317,12 @@ class PeerRouter:
                                     sock.send(serializedMsg)
                             except Exception as e:
                                 print(e)
+                                print("Could not send message in txBuffer!")
                                 serverLogger.exception(
                                     "Could not send message in txBuffer!")
                         else:
+                            print(
+                                f"Message put in txBuffer was not of type message but of type{type(msg)}")
                             serverLogger.info(
                                 f"Message put in txBuffer was not of type message but of type {type(msg)}")
                 except Empty:
@@ -393,6 +406,7 @@ class PeerRouter:
                 except Exception:
                     serverLogger.error("Connection stopped suddenly.")
         except Exception:
+            print("Exception raised in RX Thread")
             serverLogger.exception("Exception raised in RX thread.")
             with _thread["lock"]:
                 _thread["status"] = ThreadStatus.ERROR
@@ -408,7 +422,7 @@ class PeerRouter:
                     serverLogger.info("No messages to open.")
                 except Exception as e:
                     print(e)
-        except Exception as e:
+        except Exception:
             serverLogger.exception("Exception raised in message thread.")
             with _thread["lock"]:
                 _thread["status"] = ThreadStatus.ERROR
