@@ -74,7 +74,7 @@ def launch_processes(proc, numb, argus):
         p = Process(target=proc, args=argus[x])
         processes.append(p)
         p.start()
-        sleep(5)
+        sleep(8)
     return processes
 
 
