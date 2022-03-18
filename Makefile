@@ -1,38 +1,23 @@
 SHELL := /bin/bash
-
+PYTHON = unk
+ENV = unk
 OSFLAG 				:=
 ifeq ($(OS),Windows_NT)
 	OSFLAG += WIN32
+	PYTHON = python
+	ENV += ./env/Scripts/activate.bat
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		OSFLAG += LINUX
+		OSFLAG = LINUX
+		PYTHON = python3
+		ENV = source ./env/bin/activate
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		OSFLAG += OSX
+		OSFLAG = OSX
+		PYTHON = python3
+		ENV = source ./env/bin/activate
 	endif
-endif
-
-PYTHON				:=
-ifeq ($(OSFLAG),WIN32)
-	PYTHON += python
-endif
-ifeq ($(OSFLAG), OSX)
-	PYTHON += python3
-endif
-ifeq ($(OSFLAG), LINUX)
-	PYTHON += python3
-endif
-
-ENV  			:=
-ifeq ($(OSFLAG),WIN32)
-	ENV += ./env/Scripts/activate.bat
-endif
-ifeq ($(OSFLAG), OSX)
-	ENV += source ./env/bin/activate
-endif
-ifeq ($(OSFLAG), LINUX)
-	ENV += source ./env/bin/activate
 endif
 
 install:
@@ -40,7 +25,7 @@ install:
 	$(ENV) && pip install -r requirements.txt
 
 test:
-	coverage run -m pytest tests
+	$(ENV) && coverage run -m pytest tests
 
 evaluate:
 	$(ENV) && $(PYTHON) evaluation/test_throughput.py
@@ -49,7 +34,13 @@ evaluate:
 complete_run: test evaluate
 
 source:
-	$(ENV)
+	echo $(ENV)
+
+os:
+	echo $(OSFLAG)
+
+python:
+	echo $(PYTHON)
 
 clean:
 ifeq ($(OSFLAG),WIN32)
@@ -61,6 +52,5 @@ ifeq ($(OSFLAG),OSX)
 	rm -r ./env/
 endif
 ifeq ($(OSFLAG),LINUX)
-	ource ./env/bin/deactivate || deactivate
 	rm -r ./env/
 endif
