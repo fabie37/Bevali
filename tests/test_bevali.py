@@ -4,10 +4,12 @@ import blockchain
 from blockchain.block import Block
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
-from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction, signHash
+from transactions import Transaction, ContractUpdateTranscation, ContractInvokeTransaction, ContractCreateTransaction, signHash, findState
 from time import sleep
 from math import log
 import os
+
+from transactions.transaction import findState
 
 
 BLOCKCHAIN_SIZE = 10
@@ -27,7 +29,7 @@ def test_create_new_blockchain():
 
 
 def sample_blockchain(bevali):
-    " Creates a sample blockchain for testr"
+    " Creates a sample blockchain for test"
     bevali.createNewChain()
 
     for i in range(0, BLOCKCHAIN_SIZE):
@@ -339,6 +341,44 @@ def test_contract_state_updated():
         bobT, Transaction) and isinstance(carolT, Transaction))
 
 
+def test_permission_list_updated():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+
+    alice.start()
+    bob.start()
+    bob.createNewChain()
+
+    # Bob will be a minner
+    bob.start_minning()
+
+    alice.connectToNode(bob.ip, bob.port)
+    sleep(3)
+
+    # Alice will send the transaction to her peers
+    code = ""
+    cwd = os.getcwd() + "/tests/"
+    with open(cwd + "contract.py", "r") as f:
+        code = ''.join(f.readlines())
+    memory = {"id": "246"}
+    state = {"permission_list": ["Alice"], "files_in_circulation": 1}
+    transaction = ContractCreateTransaction(
+        "Alice", "246", code, memory, state)
+    alice.sendTransaction(transaction)
+    sleep(5)
+    update = ContractInvokeTransaction(
+        "Alice", "246", data={"action": "addUser", "user": "Bob"})
+    alice.sendTransaction(update)
+    sleep(10)
+    # By this point bob should have mined the block and sent it to his peers
+    newState = findState(alice.blockchain, "246", state.keys())
+
+    alice.stop()
+    bob.stop()
+
+    assert ("Bob" in newState["permission_list"])
+
+
 def test_blockchain_2_blocks_ahead():
     alice = Bevali(LOCAL_HOST, PORT_START)
 
@@ -512,3 +552,69 @@ def test_tampered_encrypted_transaction():
         valid = alice.newBlockTransactionsValid(block)
 
     return not valid
+
+
+def test_consensus_is_reached():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+
+    alice.start_minning()
+    alice.createNewChain(target='00')
+
+    for i in range(1, 100):
+        tx = ContractCreateTransaction("", i, {}, {}, None, None, None)
+        alice.sendTransaction(tx)
+
+    sleep(5)
+    alice.stop_minning()
+
+    # Connect three peers
+    bob.connectToNode(alice.ip, alice.port)
+    carol.connectToNode(alice.ip, alice.port)
+    bob.connectToNode(carol.ip, carol.port)
+    sleep(3)
+
+    # Start two competeing agents
+    bob.throttle_minning = True
+    bob.start_minning()
+    carol.start_minning()
+
+    # Let alice start broadcasting transactions
+    for i in range(101, 400):
+        tx = ContractCreateTransaction("", i, {}, {}, None, None, None)
+        alice.sendTransaction(tx)
+
+    sleep(30)
+
+    lengths = []
+    lengths.append(len(alice.blockchain.chain))
+    lengths.append(len(bob.blockchain.chain))
+    lengths.append(len(carol.blockchain.chain))
+
+    # Check blockchain are same length
+    sameLength = True
+    for i in range(len(lengths) - 1):
+        if lengths[i] != lengths[i + 1]:
+            sameLength = False
+            break
+
+    # Check blockchains are actually the same
+    sameBlocks = True
+    if sameLength:
+        for block in range(0, lengths[0]):
+            alice_block = alice.blockchain.chain[block]
+            bob_block = bob.blockchain.chain[block]
+            carol_block = carol.blockchain.chain[block]
+
+            if alice_block != bob_block or bob_block != carol_block:
+                sameBlocks = False
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+    assert(sameLength and sameBlocks)

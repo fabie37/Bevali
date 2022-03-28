@@ -1,6 +1,7 @@
 """
     This file contains tests for the class 'Blockchain' contained within the 'Blockchain' Module
 """
+from numpy import block
 from blockchain import Blockchain, Block
 
 
@@ -52,20 +53,20 @@ def test_block_belongs_to_chain():
 
 def test_blockchain_is_equal():
     blockchain = create_blockchain()
-    blockchain2 = create_blockchain()
+    blockchain2 = blockchain
     assert(blockchain.is_equal(blockchain2))
 
 
 def test_blockchain_is_not_equal():
     blockchain = create_blockchain()
-    blockchain2 = create_blockchain()
+    blockchain2 = blockchain.copy()
     blockchain2.chain[2].nonce = 99
     assert(not blockchain.is_equal(blockchain2))
 
 
 def test_prev_hash_in_chain():
     blockchain = create_blockchain()
-    blockchain2 = create_blockchain()
+    blockchain2 = blockchain.copy()
     forked_block = blockchain2.mine_block("something")
     blockchain.add_block(blockchain.mine_block("nothing"))
     assert(blockchain.is_prev_hash_in_chain(forked_block))

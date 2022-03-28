@@ -5,7 +5,7 @@ OSFLAG 				:=
 ifeq ($(OS),Windows_NT)
 	OSFLAG += WIN32
 	PYTHON = python
-	ENV += ./env/Scripts/activate.bat
+	ENV = ./env/Scripts/activate.bat
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)

@@ -1,6 +1,7 @@
 
 from threading import RLock
 from collections import UserList
+from copy import deepcopy
 
 
 class ProtectedList(UserList):
@@ -44,3 +45,11 @@ class ProtectedList(UserList):
         with self.lock:
             length = super().__len__()
         return length
+
+    def __deepcopy__(self):
+        new_list = []
+        with self.lock:
+            for item in self:
+                copy_item = deepcopy(item)
+                new_list.append(copy_item)
+        return ProtectedList(new_list)

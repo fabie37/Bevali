@@ -92,6 +92,9 @@ class Bevali():
         # Disable checks, for testing purposes
         self.disableChecks = False
 
+        # Throttles minning for testing
+        self.throttle_minning = False
+
     def start(self):
         """
         Starts all related threads:
@@ -138,10 +141,10 @@ class Bevali():
         """
         return serialize_public_key(self.publicKey).decode("utf-8")
 
-    def createNewChain(self):
+    def createNewChain(self, target='0'):
         """ Method to created a new chain """
         firstBlock = Block()
-        self.blockchain = Blockchain()
+        self.blockchain = Blockchain(target=target)
         self.blockchain.add_block(firstBlock)
 
     def sendTransaction(self, transaction):
@@ -484,6 +487,9 @@ class Bevali():
         print("Starting to mine...")
         try:
             while _thread["status"] != ThreadStatus.STOPPING:
+
+                if self.throttle_minning:
+                    sleep(0.3)
 
                 try:
                     # Before minning, get the transactions from transaction pool

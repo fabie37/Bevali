@@ -15,13 +15,31 @@ experiment_indepedent_variables = {
 }
 
 experiment_x_axis = {
-    "experiment_1": [x for x in range(2, 21, 2)]
+    "experiment_1": [x for x in range(2, 21, 2)],
+    "experiment_2": [x for x in range(1, 11)]
+}
+
+experiment_y_axis = {
+    "experiment_1": [y for y in range(0, 201, 20)],
+    "experiment_2": [y for y in range(0, 251, 25)],
+    "experiment_3": [y for y in range(0, 81, 10)],
+}
+
+experiment_titles = {
+    "experiment_1": "Blockchain Throughput per Number of Agents \n (1 Miner, 100 Contracts, '0' Target Hash)",
+    "experiment_2": "Blockchain Throughput per Number of Miners \n (16 Agents, 100 Contracts, '0' Target Hash)",
+    "experiment_3": "Blockchain Throughput per Number of Contracts \n (16 Agents, 1 Miner, '0' Target Hash)"
+}
+
+experiment_x_label = {
+    "experiment_1": "Agents"
 }
 
 
 def getExperimentFileNames():
     files = [f for f in listdir(os.curdir + "/evaluation")]
-    files = filter((lambda f_n: f_n.startswith('experiment')), files)
+    files = filter((lambda f_n: f_n.startswith(
+        'experiment') and f_n.endswith('.csv')), files)
     files = [f for f in files]
     return files
 
@@ -42,13 +60,26 @@ def getIndepedentVariable(file):
 
 def graphDataframe(file, df):
     indep = getIndepedentVariable(file)
-    lplot = sns.lineplot(data=df, x=indep, y="Throughput", )
+    lplot = sns.lineplot(data=df, x=indep, y="Throughput",
+                         err_style='bars', err_kws={"capsize": 4})
     stripped_file = file.replace(".csv", "")
     if stripped_file in experiment_x_axis:
         lplot.set_xticks(experiment_x_axis[stripped_file])
         lplot.set_xticklabels(experiment_x_axis[stripped_file])
+
+    if stripped_file in experiment_y_axis:
+        lplot.set_yticks(experiment_y_axis[stripped_file])
+        lplot.set_yticklabels(experiment_y_axis[stripped_file])
+
+    if stripped_file in experiment_titles:
+        lplot.set(title=experiment_titles[stripped_file])
+
+    if stripped_file in experiment_x_label:
+        lplot.set(xlabel=experiment_x_label[stripped_file])
+
+    lplot.set(ylabel='Throughput (Transactions/Second)')
     stripped_file = file.replace(".csv", "")
-    plt.savefig(stripped_file + ".png")
+    plt.savefig("evaluation/" + stripped_file + ".png")
     plt.clf()
 
 

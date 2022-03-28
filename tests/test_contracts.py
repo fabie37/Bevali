@@ -1,7 +1,7 @@
 from bevali import Bevali
 from tests.test_networking import LOCAL_HOST
 from tests.test_networking import PORT_START
-from transactions import ContractInvokeTransaction, ContractCreateTransaction
+from transactions import ContractInvokeTransaction, ContractCreateTransaction, Transaction
 from time import sleep
 import os
 
@@ -28,6 +28,108 @@ def create_x_files(bevali, user_id, number_of_files, permissionList=None):
         fileContract = ContractCreateTransaction(
             user_id, i, code, memory, state)
         bevali.sendTransaction(fileContract)
+
+
+def test_contract_stored_on_blockchain():
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+
+    alice.start()
+    bob.start()
+    bob.createNewChain()
+    bob.start_minning()
+
+    alice.connectToNode(bob.ip, bob.port)
+    sleep(2)
+
+    create_x_files(alice, "Alice", 1)
+    sleep(2)
+
+    hasContract = False
+    for i in range(len(alice.blockchain.chain)):
+        alice_block = alice.blockchain.chain[i]
+        bob_block = bob.blockchain.chain[i]
+
+        if alice_block.data and bob_block.data:
+            for tx in range(len(alice_block.data)):
+                alice_tx = alice_block.data[tx]
+                bob_tx = bob_block.data[tx]
+
+                if isinstance(alice_tx, ContractCreateTransaction) and isinstance(bob_tx, ContractCreateTransaction):
+                    hasContract = True
+
+    alice.stop()
+    bob.stop()
+
+    return hasContract
+
+
+def test_invocation_to_sum_contract():
+    sumContract = import_code("sum_contract.py")
+
+    alice = Bevali(LOCAL_HOST, PORT_START)
+    bob = Bevali(LOCAL_HOST, PORT_START + 1)
+    carol = Bevali(LOCAL_HOST, PORT_START + 2)
+
+    alice.start()
+    bob.start()
+    carol.start()
+    bob.createNewChain()
+
+    # Bob will be the miner
+    bob.start_minning()
+    alice.connectToNode(bob.ip, bob.port)
+    carol.connectToNode(bob.ip, bob.port)
+    sleep(3)
+
+    # Alice sends a contract on the blockchain to sum two values
+    sumC = ContractCreateTransaction(
+        "Alice", 99, sumContract, None, None, None, None)
+    alice.sendTransaction(sumC)
+    sleep(3)
+
+    # Then alice sends a invocation to the add contract to add various numbers
+    add45 = ContractInvokeTransaction("Alice", 99, data={
+        "var_1": 4,
+        "var_2": 5
+    })
+
+    add98 = ContractInvokeTransaction("Alice", 99, data={
+        "var_1": 9,
+        "var_2": 8
+    })
+
+    alice.sendTransaction(add45)
+    alice.sendTransaction(add98)
+
+    # Wait for execution and minning
+    sleep(10)
+
+    alice_chain = alice.blockchain.chain
+    bob_chain = bob.blockchain.chain
+    carol_chain = carol.blockchain.chain
+
+    targets = {
+        9: False,
+        17: False
+    }
+    for block in range(len(alice_chain)):
+        if alice_chain[block].data:
+            for tx in range(len(alice_chain[block].data)):
+                a_tx = alice_chain[block].data[tx]
+                b_tx = bob_chain[block].data[tx]
+                c_tx = carol_chain[block].data[tx]
+
+                if isinstance(a_tx, Transaction) and isinstance(b_tx, Transaction) and isinstance(c_tx, Transaction):
+                    if a_tx.data and b_tx.data and c_tx.data:
+                        if "result" in a_tx.data:
+                            if a_tx.data["result"] in targets and b_tx.data["result"] in targets and c_tx.data["result"] in targets:
+                                targets[a_tx.data["result"]] = True
+
+    alice.stop()
+    bob.stop()
+    carol.stop()
+    assert(targets[9] and targets[17])
 
 
 def test_log_edit_file():
@@ -172,7 +274,7 @@ def test_log_violation_edit_file():
 
     # Alice will then invoke contract to upload a log
     sendLog = ContractInvokeTransaction(
-        "Carol", 1, {"action": "send", "to": "Carol"})
+        "Carol", 1, {"action": "edit", "to": "Carol"})
     carol.sendTransaction(sendLog)
 
     sleep(4)

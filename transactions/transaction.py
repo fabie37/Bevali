@@ -54,6 +54,9 @@ class Transaction():
             "timestamp": self.timestamp
         }
 
+    def __repr__(self):
+        return json.dumps(self.jsonize())
+
 
 class ContractCreateTransaction(Transaction):
     """
@@ -162,9 +165,11 @@ class ContractInvokeTransaction(Transaction):
                 return None
 
             # 2. Find contracts latest state
-            state_keys = contract.state.keys()
-            current_state = findState(
-                blockchain, self.contract_id, state_keys, blockNumber)
+            current_state = None
+            if contract.state:
+                state_keys = contract.state.keys()
+                current_state = findState(
+                    blockchain, self.contract_id, state_keys, blockNumber)
 
             # 3. Run the code!
 

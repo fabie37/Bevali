@@ -6,18 +6,17 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
-import pandas as pd
-from bevali import Bevali
-from tests.test_contracts import import_code
-from time import time, sleep
-from threading import Lock
-from multiprocessing.managers import SyncManager
-from multiprocessing import Process, JoinableQueue as MQ, Manager
-from multiprocessing.connection import Listener, Client
-from blockchain.blockchain import Blockchain, Block
-from transactions import ContractCreateTransaction, ContractInvokeTransaction, findContract, Transaction
 from random import randrange
-
+from transactions import ContractCreateTransaction, ContractInvokeTransaction, findContract, Transaction
+from blockchain.blockchain import Blockchain, Block
+from multiprocessing.connection import Listener, Client
+from multiprocessing import Process, JoinableQueue as MQ, Manager
+from multiprocessing.managers import SyncManager
+from threading import Lock
+from time import time, sleep
+from tests.test_contracts import import_code
+from bevali import Bevali
+import pandas as pd
 
 # Constants
 BLOCKCHAIN_IP = '127.0.0.1'
@@ -193,7 +192,6 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     callbackQ = manager.Queue()
     argus = []
     miners = num_miners
-    
 
     # Set up arguments for nodes
     for p in range(1, num_peers):
@@ -205,7 +203,7 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
         # if miners > 0:
         #     miner = True
         #     miners -= 1
-        
+
         # Set neighbours
         if p > 1:
             neighbours = [WATCHERPORT + p - 1, WATCHERPORT + p - 2]
@@ -219,7 +217,7 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
             num_peers,
             num_tx,
             qq,
-            callbackQ, 
+            callbackQ,
             neighbours,
             len(demochain.chain)
         ]
@@ -258,7 +256,7 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     while finished < num_peers - 1:
         if getFromQueue(callbackQ, "done"):
             finished += 1
-    
+
     print("Experiment Finished...")
 
     # Tell all peers to close
@@ -277,7 +275,8 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     while not qq.empty():
         times.append(qq.get())
 
-    cols = ["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"]
+    cols = ["Peers", "Miners", "Contracts",
+            "Transactions", "Time", "Difficulty"]
     data = []
     for t in times:
         data.append([
@@ -292,37 +291,16 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     results = pd.DataFrame(data, columns=cols)
     return results
 
+
 if __name__ == '__main__':
-    for i in range(0 , 5):
-        print("Experiment 3:")
+    for i in range(0, 1):
+        print("Experiment 4:")
         txs = 100
-        contracts_list = [5000, 10000, 15000, 20000, 25000, 30000]
+        contracts_list = [15000, 20000, 25000, 30000]
         diff_list = ['0']
-        miner_list = [1]
+        miner_list = [7 ,8 ]
         peer_list = [16]
-        output = "evaluation/experiment_3.csv"
-
-        results = pd.DataFrame(
-        columns = ["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
-        for diff in diff_list:
-            for contracts in contracts_list:
-                for miners in miner_list:
-                    for peers in peer_list:
-                        demochain = create_demo_chain(diff, contracts)
-                        results = pd.concat(
-                            [results, experiment_start(peers, miners, contracts, txs, diff)])
-                        results.to_csv(output, mode='a',
-                                    header = not os.path.exists(output))
-                        results = pd.DataFrame(
-                            columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
-
-        print("Experiment 1:")
-        txs = 100
-        contracts_list = [100]
-        diff_list = ['0']
-        miner_list = [1]
-        peer_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-        output = "evaluation/experiment_1.csv"
+        output = "evaluation/experiment_4.csv"
 
         results = pd.DataFrame(
             columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
@@ -334,35 +312,76 @@ if __name__ == '__main__':
                         results = pd.concat(
                             [results, experiment_start(peers, miners, contracts, txs, diff)])
                         results.to_csv(output, mode='a',
-                                    header=not os.path.exists(output))
+                                       header=not os.path.exists(output))
                         results = pd.DataFrame(
                             columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
 
+    # for i in range(0, 1):
+    #     print("Experiment 3:")
+    #     txs = 100
+    #     contracts_list = [5000, 10000, 15000, 20000, 25000, 30000]
+    #     diff_list = ['0']
+    #     miner_list = [1]
+    #     peer_list = [16]
+    #     output = "evaluation/experiment_3.csv"
 
-        print("Experiment 2:")
-        txs = 100
-        contracts_list = [100]
-        diff_list = ['0']
-        miner_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        peer_list = [16]
-        output = "evaluation/experiment_2.csv"
+    #     results = pd.DataFrame(
+    #         columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+    #     for diff in diff_list:
+    #         for contracts in contracts_list:
+    #             for miners in miner_list:
+    #                 for peers in peer_list:
+    #                     demochain = create_demo_chain(diff, contracts)
+    #                     results = pd.concat(
+    #                         [results, experiment_start(peers, miners, contracts, txs, diff)])
+    #                     results.to_csv(output, mode='a',
+    #                                    header=not os.path.exists(output))
+    #                     results = pd.DataFrame(
+    #                         columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
 
-        results = pd.DataFrame(
-        columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
-        for diff in diff_list:
-            for contracts in contracts_list:
-                for miners in miner_list:
-                    for peers in peer_list:
-                        demochain = create_demo_chain(diff, contracts)
-                        results = pd.concat(
-                            [results, experiment_start(peers, miners, contracts, txs, diff)])
-                        results.to_csv(output, mode='a',
-                                    header=not os.path.exists(output))
-                        results = pd.DataFrame(
-                            columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+        # print("Experiment 1:")
+        # txs = 100
+        # contracts_list = [100]
+        # diff_list = ['0']
+        # miner_list = [1]
+        # peer_list = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+        # output = "evaluation/experiment_1.csv"
 
+        # results = pd.DataFrame(
+        #     columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+        # for diff in diff_list:
+        #     for contracts in contracts_list:
+        #         for miners in miner_list:
+        #             for peers in peer_list:
+        #                 demochain = create_demo_chain(diff, contracts)
+        #                 results = pd.concat(
+        #                     [results, experiment_start(peers, miners, contracts, txs, diff)])
+        #                 results.to_csv(output, mode='a',
+        #                                header=not os.path.exists(output))
+        #                 results = pd.DataFrame(
+        #                     columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
 
+        # print("Experiment 2:")
+        # txs = 100
+        # contracts_list = [100]
+        # diff_list = ['0']
+        # miner_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        # peer_list = [16]
+        # output = "evaluation/experiment_2.csv"
 
+        # results = pd.DataFrame(
+        #     columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+        # for diff in diff_list:
+        #     for contracts in contracts_list:
+        #         for miners in miner_list:
+        #             for peers in peer_list:
+        #                 demochain = create_demo_chain(diff, contracts)
+        #                 results = pd.concat(
+        #                     [results, experiment_start(peers, miners, contracts, txs, diff)])
+        #                 results.to_csv(output, mode='a',
+        #                                header=not os.path.exists(output))
+        #                 results = pd.DataFrame(
+        #                     columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
 
     # txs = 100
     # contracts = 100

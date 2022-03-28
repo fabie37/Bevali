@@ -52,9 +52,9 @@ class Blockchain:
             return False
 
         for index, block in enumerate(self.chain):
-            thisHash = block.generate_hash()
-            blockHash = bc.chain[index].generate_hash()
-            if not thisHash == blockHash:
+            thisBlock = block
+            otherBlock = bc.chain[index]
+            if thisBlock != otherBlock:
                 return False
 
         return True
@@ -101,10 +101,11 @@ class Blockchain:
 
         newChain = Blockchain(target=self.target,
                               miningWindow=self.miningWindow)
+        chain = self.chain.__deepcopy__()
         if blockNumber:
-            newChain.chain.extend(self.chain[:blockNumber + 1])
+            newChain.chain.extend(chain[:blockNumber + 1])
         else:
-            newChain.chain.extend(self.chain)
+            newChain.chain = chain
         return newChain
 
     def mine_block(self, data, miner=""):

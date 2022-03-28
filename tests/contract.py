@@ -159,6 +159,10 @@ else:
     # 5) If user not logging any data, but instead, extending permissions - add them to smart contract
     #    permission list.
     elif data["action"] == "addUser":
+        if isinstance(state["permission_list"], list):
+            newList = state["permission_list"] + [data["user"]]
+        else:
+            newList = [state["permission_list"], data["user"]]
         newState = updateState(invoker, contract_id,
-                               "permission_list", data["user"])
+                               "permission_list", newList)
         transactions.append(newState)

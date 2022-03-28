@@ -52,5 +52,5 @@ class Block:
 
     def __eq__(self, other):
         if (isinstance(other, Block)):
-            return self.__dict__ == other.__dict__
+            return self.generate_hash() == other.generate_hash()
         return False
