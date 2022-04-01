@@ -264,5 +264,60 @@
 * *7 hours* fixed networking bug.
 
 ## 09 March 2022
-* *8 hours* Continued writting implementation of blockchain on dissetation.
+* *8 hours* Continued writting implementation of blockchain on disseration.
+
+## 10 March 2022
+* *5 hours* Revisited design section of dissertation.
+
+### Week 25
+
+## 12 March 2022
+* *4 hours* Started within implementation section
+
+## 14 March 2022
+* *8 hours* Writting halfway though implementation
+
+## 15 March 2022
+* *5 hours* Still writting implementation section
+
+### Week 26
+
+## 18 March 2022
+* *8 hours* Implemented evaluation suite for throughput analysis
+
+## 19 March 2022
+* *4 hours* Attempted network bug fix, no success
+
+## 20 March 2022
+* *6 hours* Fixed network bug, gathering data for report
+
+## 21 March 2022
+* *8 hours* automated graph building for project
+
+### Week 27
+
+## 25 March 2022
+* *5 hours* Started writting the evaluation 
+
+## 26 March 2022
+* *8 hours* Continued writting the evaluation
+
+## 27 March 2022
+* *8 hours* Finished touching up implementation and wrote conclusion
+
+## 28 March 2022
+* *5 hours* Coverated dissertation from word to LaTex
+* *3 hours* Worked on power point presentation
+
+## 29 March 2022
+* *8 hours* Continual refinement and edits to final dissertation
+
+## 30 March 2022
+* *12 hours* Tidy up code base and compile project together
+
+## 31 March 2022
+* *7 hours* final edits to dissertation
+* *3 hours* Worked on presentation
+
+
 
