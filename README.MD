@@ -1,6 +1,5 @@
-# Readme
+# Bevali: Behaviour Validation Using Smart Contracts
 
-Bevali. Behaviour Validation using Smart Contract.
 This project aims to show the efficacy of using smart contracts for behaviour validation.
 Each component of the proect is broken down into modules. 
 * `bevali` module ties all the modules together to produce the instantiation for a runnable agent. 
