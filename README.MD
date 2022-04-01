@@ -65,7 +65,6 @@ The source directory is such:
  ┃  ┗ 📜__init__.py
  ┣ 📜.gitignore
  ┣ 📜bitbucket-pipelines.yml
- ┣ 📜commandlist.dat
  ┣ 📜conftest.py
  ┣ 📜Makefile
  ┣ 📜readme.md
