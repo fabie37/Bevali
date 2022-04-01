@@ -227,7 +227,7 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
     # Launch watcher
     watcher = setup_watcher_node()
     watcher.start()
-    sleep(5)
+    sleep(3)
 
     # Launch command listener
     # listener = Listener((BLOCKCHAIN_IP, COMMANDER_PORT), authkey=b'123')
@@ -249,7 +249,7 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
 
     # Start sending transactions
     for tx in range(num_tx, num_tx * 2):
-        watcher.sendTransaction(create_demo_log(1, randrange(1, 99)))
+        watcher.sendTransaction(create_demo_log(1, randrange(1, num_contracts- 1)))
 
     # Wait for all peers to finish collecting new blocks
     finished = 0
@@ -293,14 +293,15 @@ def experiment_start(num_peers, num_miners, num_contracts, num_tx, difficulty):
 
 
 if __name__ == '__main__':
-    for i in range(0, 1):
-        print("Experiment 4:")
+    for i in range(0, 3):
+        print("Experiment 5:")
         txs = 100
-        contracts_list = [15000, 20000, 25000, 30000]
+        # contracts_list = [500, 1000, 1500, 2000, 2500]
+        contracts_list = [1500]
         diff_list = ['0']
-        miner_list = [7 ,8 ]
-        peer_list = [16]
-        output = "evaluation/experiment_4.csv"
+        miner_list = [1, 2, 3, 4, 5, 6]
+        peer_list = [6]
+        output = "evaluation/experiment_5.csv"
 
         results = pd.DataFrame(
             columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
@@ -315,6 +316,7 @@ if __name__ == '__main__':
                                        header=not os.path.exists(output))
                         results = pd.DataFrame(
                             columns=["Peers", "Miners", "Contracts", "Transactions", "Time", "Difficulty"])
+                        sleep(1)
 
     # for i in range(0, 1):
     #     print("Experiment 3:")

@@ -11,24 +11,32 @@ import matplotlib.pyplot as plt
 experiment_indepedent_variables = {
     "experiment_1": "Peers",
     "experiment_2": "Miners",
-    "experiment_3": "Contracts"
+    "experiment_3": "Contracts",
+    "experiment_4": "Contracts"
+}
+
+experiment_extra_variables = {
+    "experiment_4": "Miners"
 }
 
 experiment_x_axis = {
     "experiment_1": [x for x in range(2, 21, 2)],
-    "experiment_2": [x for x in range(1, 11)]
+    "experiment_2": [x for x in range(1, 11)],
+    "experiment_4": [x for x in range(500, 2501, 500)]
 }
 
 experiment_y_axis = {
     "experiment_1": [y for y in range(0, 201, 20)],
     "experiment_2": [y for y in range(0, 251, 25)],
     "experiment_3": [y for y in range(0, 81, 10)],
+    "experiment_4": [y for y in range(0, 131, 10)],
 }
 
 experiment_titles = {
     "experiment_1": "Blockchain Throughput per Number of Agents \n (1 Miner, 100 Contracts, '0' Target Hash)",
     "experiment_2": "Blockchain Throughput per Number of Miners \n (16 Agents, 100 Contracts, '0' Target Hash)",
-    "experiment_3": "Blockchain Throughput per Number of Contracts \n (16 Agents, 1 Miner, '0' Target Hash)"
+    "experiment_3": "Blockchain Throughput per Number of Contracts \n (16 Agents, 1 Miner, '0' Target Hash)",
+    "experiment_4": "Blockchain Throughput against Number of Contracts and Miners \n (6 Agents, '0' Target Hash)"
 }
 
 experiment_x_label = {
@@ -60,9 +68,15 @@ def getIndepedentVariable(file):
 
 def graphDataframe(file, df):
     indep = getIndepedentVariable(file)
-    lplot = sns.lineplot(data=df, x=indep, y="Throughput",
-                         err_style='bars', err_kws={"capsize": 4})
     stripped_file = file.replace(".csv", "")
+
+    if stripped_file in experiment_extra_variables:
+        lplot = sns.lineplot(data=df, x=indep, hue=experiment_extra_variables[stripped_file], y="Throughput",
+                             err_style='bars', err_kws={"capsize": 4})
+    else:
+        lplot = sns.lineplot(data=df, x=indep, y="Throughput",
+                             err_style='bars', err_kws={"capsize": 4})
+
     if stripped_file in experiment_x_axis:
         lplot.set_xticks(experiment_x_axis[stripped_file])
         lplot.set_xticklabels(experiment_x_axis[stripped_file])

@@ -8,7 +8,7 @@ class Message:
     def __init__(self, toPeer, fromPeer):
         self.toPeer = toPeer
         self.fromPeer = fromPeer
-        self.uid = uuid.uuid4()
+        self.uid = str(toPeer) + "_" + str(uuid.uuid4()) + "_" + str(fromPeer)
 
     def setSourceSocket(self, socket, address):
         self.sourceSocket = socket

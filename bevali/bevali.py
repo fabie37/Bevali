@@ -11,7 +11,7 @@ from transactions import Transaction, signHash
 from encryption import get_public_key, generate_private_key, serialize_public_key
 from time import sleep
 
-TRANSACTIONS_TO_MINE = 10
+TRANSACTIONS_TO_MINE = 100
 RELEASE_TRANSACTIONS_AFTER = 2
 
 
@@ -478,6 +478,7 @@ class Bevali():
 
         except Exception:
             with _thread["lock"]:
+                print("Processing thread unexpectedly stopped working...")
                 _thread["status"] = ThreadStatus.ERROR
 
     def minningThread(self, _thread):
@@ -514,11 +515,13 @@ class Bevali():
                                 self.pool.remove(tx)
 
                     sleep(0.1)
-                except (Exception):
+                except Exception as e:
+                    print(e)
                     # Something went wrong in minning, just try again
                     pass
         except Exception:
             with _thread["lock"]:
+                print("Minning thread unexpectedly stopped working...")
                 _thread["status"] = ThreadStatus.ERROR
 
     def peerWatcherThread(self, _thread):
@@ -542,4 +545,5 @@ class Bevali():
 
         except Exception:
             with _thread["lock"]:
+                print("Peer watcher thread unexpectedly stopped working...")
                 _thread["status"] = ThreadStatus.ERROR
