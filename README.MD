@@ -77,6 +77,7 @@ The source directory is such:
 
 
 * Python 3.10
+* Make
 * Packages: listed in `requirements.txt` 
 * Tested on Windows 10, Linux Mint 18, MacOS Big Sir
 
@@ -86,7 +87,7 @@ The source directory is such:
 
 * Building the software is done via the make file.
 * If you have trouble with the installation, it's due to this make file.
-* It attempts to install on windows and unix based systems, but
+* It attempts to install on windows and unix based system but it is only tested properly on the OSs described above.
 * Run these commands:
 
 ```
